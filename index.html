@@ -53,8 +53,10 @@
 
     /* SHIFT BANNERS */
     .shift-banner { border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px; }
-    .shift-banner.day   { background:linear-gradient(135deg,#fffde7,#fff8e1); border:1.5px solid #f6e05e; }
-    .shift-banner.night { background:linear-gradient(135deg,#e8eaf6,#ede7f6); border:1.5px solid #b39ddb; }
+    .shift-banner.morning   { background:linear-gradient(135deg,#fff9e6,#fef3c7); border:1.5px solid #f6b93b; }
+    .shift-banner.midday    { background:linear-gradient(135deg,#e6f9f0,#d1fae5); border:1.5px solid #34d399; }
+    .shift-banner.afternoon { background:linear-gradient(135deg,#fff3e6,#ffe8cc); border:1.5px solid #f97316; }
+    .shift-banner.night     { background:linear-gradient(135deg,#e8eaf6,#ede7f6); border:1.5px solid #b39ddb; }
     .shift-banner .shift-icon { font-size:32px; flex-shrink:0; }
     .shift-banner .shift-name { font-size:18px; font-weight:800; }
     .shift-banner .shift-time { font-size:13px; opacity:.75; margin-top:2px; }
@@ -331,7 +333,7 @@
     <div style="font-weight:700;font-size:15px;color:#1a365d;margin-bottom:4px;">How the shift schedule works</div>
     <div style="font-size:13px;color:#2b6cb0;line-height:1.6;">
       Assign <strong>one person</strong> per shift per day.<br>
-      🌅 <strong>Day Shift</strong>: 06:00 – 18:00 &nbsp;·&nbsp; 🌙 <strong>Night Shift</strong>: 18:00 – 06:00
+      🌄 <strong>Morning</strong>: 06:00–11:00 &nbsp;·&nbsp; ☀️ <strong>Midday</strong>: 11:00–16:00 &nbsp;·&nbsp; 🌇 <strong>Afternoon</strong>: 16:00–18:00 &nbsp;·&nbsp; 🌙 <strong>Night</strong>: 18:00–06:00
     </div>
   </div>
   <div id="scheduleBody"></div>
@@ -351,11 +353,15 @@
 <!-- ==================== MANAGE TASKS ==================== -->
 <div class="page" id="pg-manage-tasks">
   <div class="card card-blue" style="padding:13px 15px;margin-bottom:14px;font-size:13px;color:#2b6cb0;">
-    <strong>Tip:</strong> Tasks go to 🌅 Day shift (06:00–17:59) or 🌙 Night shift (18:00–05:59) based on their time.
+    <strong>Tip:</strong> Tasks are assigned to a shift based on their start time.
   </div>
-  <div class="sec-header">Day Shift Tasks &nbsp;<span class="badge badge-day">🌅 06:00 – 18:00</span></div>
-  <div class="card" id="dayTasksList" style="padding:8px 16px;"></div>
-  <div class="sec-header">Night Shift Tasks &nbsp;<span class="badge badge-night">🌙 18:00 – 06:00</span></div>
+  <div class="sec-header">🌄 Morning &nbsp;<span class="badge badge-yellow">06:00 – 11:00</span></div>
+  <div class="card" id="morningTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">☀️ Midday &nbsp;<span class="badge badge-green">11:00 – 16:00</span></div>
+  <div class="card" id="middayTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">🌇 Afternoon &nbsp;<span class="badge badge-orange">16:00 – 18:00</span></div>
+  <div class="card" id="afternoonTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">🌙 Night &nbsp;<span class="badge badge-purple">18:00 – 06:00</span></div>
   <div class="card" id="nightTasksList" style="padding:8px 16px;"></div>
   <div class="sec-header">Add New Task</div>
   <div class="card">
@@ -498,7 +504,7 @@ function defaultTasks() {
   };
 }
 function defaultSchedule() {
-  const s = {}; DAYS.forEach(d => { s[d] = {day:null, night:null}; }); return s;
+  const s = {}; DAYS.forEach(d => { s[d] = {morning:null,midday:null,afternoon:null,night:null}; }); return s;
 }
 
 // ================================================================
@@ -688,23 +694,37 @@ async function fbRemove(path) {
 // ================================================================
 // SHIFT HELPERS
 // ================================================================
-function currentShift() { const h=new Date().getHours(); return (h>=6&&h<18)?'day':'night'; }
-function getTaskShift(task) {
-  if(!task||!task.time) return 'day';
-  const h=parseInt(task.time.split(':')[0],10);
-  return (h>=6&&h<18)?'day':'night';
+function currentShift() {
+  const h=new Date().getHours();
+  if(h>=6  && h<11) return 'morning';
+  if(h>=11 && h<16) return 'midday';
+  if(h>=16 && h<18) return 'afternoon';
+  return 'night';
 }
-function shiftLabel(shift) { return shift==='day'?'🌅 Day Shift':'🌙 Night Shift'; }
-function shiftTime(shift)  { return shift==='day'?'06:00 – 18:00':'18:00 – 06:00'; }
+function getTaskShift(task) {
+  if(!task||!task.time) return 'morning';
+  const h=parseInt(task.time.split(':')[0],10);
+  if(h>=6  && h<11) return 'morning';
+  if(h>=11 && h<16) return 'midday';
+  if(h>=16 && h<18) return 'afternoon';
+  return 'night';
+}
+const SHIFT_META = {
+  morning:   { icon:'🌄', label:'Morning Shift',   time:'06:00 – 11:00', cls:'morning',   badge:'badge-yellow' },
+  midday:    { icon:'☀️',  label:'Midday Shift',    time:'11:00 – 16:00', cls:'midday',    badge:'badge-green'  },
+  afternoon: { icon:'🌇', label:'Afternoon Shift',  time:'16:00 – 18:00', cls:'afternoon', badge:'badge-orange' },
+  night:     { icon:'🌙', label:'Night Shift',      time:'18:00 – 06:00', cls:'night',     badge:'badge-purple' },
+};
+function shiftLabel(shift) { return (SHIFT_META[shift]||SHIFT_META.morning).icon+' '+(SHIFT_META[shift]||SHIFT_META.morning).label; }
+function shiftTime(shift)  { return (SHIFT_META[shift]||SHIFT_META.morning).time; }
 function sortByTime(tasks) { return [...tasks].sort((a,b)=>(a.time||'').localeCompare(b.time||'')); }
 
 function makeShiftBanner(shift, assignedName, isCurrentUser) {
-  const cls=shift==='day'?'day':'night', icon=shift==='day'?'🌅':'🌙';
-  const name=shift==='day'?'Day Shift':'Night Shift';
+  const m=SHIFT_META[shift]||SHIFT_META.morning;
   const assignLine=assignedName
     ?`<div style="font-size:13px;margin-top:4px;">👤 <strong>${assignedName}</strong> is on shift ${isCurrentUser?'<span class="badge badge-green" style="font-size:11px;padding:2px 8px;">That\'s you!</span>':''}</div>`
     :`<div style="font-size:13px;margin-top:4px;opacity:.7;">No one assigned — see Admin → Schedule</div>`;
-  return `<div class="shift-banner ${cls}"><div class="shift-icon">${icon}</div><div><div class="shift-name">${name}</div><div class="shift-time">${shiftTime(shift)}</div>${assignLine}</div></div>`;
+  return `<div class="shift-banner ${m.cls}"><div class="shift-icon">${m.icon}</div><div><div class="shift-name">${m.label}</div><div class="shift-time">${m.time}</div>${assignLine}</div></div>`;
 }
 
 // ================================================================
@@ -1049,25 +1069,19 @@ function checkPin() {
 // ================================================================
 function renderAdminDashboard() {
   const schedule=getSchedule(), staff=getStaff(), today=todayDayName();
-  const entry=schedule[today]||{day:null,night:null};
-  const dayStaff  =entry.day  ?staff.find(s=>s.id==entry.day)  :null;
-  const nightStaff=entry.night?staff.find(s=>s.id==entry.night):null;
-
+  const entry=schedule[today]||{morning:null,midday:null,afternoon:null,night:null};
+  const shiftCols=['morning','midday','afternoon','night'].map((sh,i)=>{
+    const m=SHIFT_META[sh], s=entry[sh]?staff.find(x=>x.id==entry[sh]):null;
+    const border=i<3?'border-right:1px solid #f0f4f8;':'';
+    return `<div style="padding:12px 10px;${border}text-align:center;">
+      <div style="font-size:20px;margin-bottom:4px;">${m.icon}</div>
+      <div style="font-weight:700;font-size:12px;">${m.label.replace(' Shift','')}</div>
+      <div style="font-size:10px;color:#a0aec0;margin-bottom:4px;">${m.time}</div>
+      ${s?`<span class="badge badge-green" style="font-size:11px;">${s.name}</span>`:'<span class="badge badge-red" style="font-size:10px;">⚠️ None</span>'}
+    </div>`;
+  }).join('');
   document.getElementById('adminTodayShifts').innerHTML=`<div class="card" style="padding:0;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;">
-      <div style="padding:16px;border-right:1px solid #f0f4f8;">
-        <div style="font-size:24px;margin-bottom:6px;">🌅</div>
-        <div style="font-weight:700;font-size:14px;">Day Shift</div>
-        <div style="font-size:12px;color:#718096;margin-bottom:6px;">06:00 – 18:00</div>
-        ${dayStaff?`<span class="badge badge-green">${dayStaff.name}</span>`:'<span class="badge badge-red">⚠️ Unassigned</span>'}
-      </div>
-      <div style="padding:16px;">
-        <div style="font-size:24px;margin-bottom:6px;">🌙</div>
-        <div style="font-weight:700;font-size:14px;">Night Shift</div>
-        <div style="font-size:12px;color:#718096;margin-bottom:6px;">18:00 – 06:00</div>
-        ${nightStaff?`<span class="badge badge-purple">${nightStaff.name}</span>`:'<span class="badge badge-red">⚠️ Unassigned</span>'}
-      </div>
-    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">${shiftCols}</div>
   </div>`;
 
   const comps=getCompletions(), todays=comps, done=todays.filter(c=>c.hasAfter).length;
@@ -1083,7 +1097,7 @@ function renderAdminDashboard() {
       ${todays.map(c=>`<div class="manage-row">
         <span>${c.hasAfter?'✅':c.hasBefore?'⏳':'○'}</span>
         <span style="flex:1;font-size:14px;font-weight:500;">${c.taskIcon||''} ${c.taskName}</span>
-        <span class="badge ${(c.shift||'day')==='day'?'badge-day':'badge-night'}" style="font-size:11px;">${(c.shift||'day')==='day'?'🌅':'🌙'}</span>
+        <span class="badge ${(SHIFT_META[c.shift]||SHIFT_META.morning).badge}" style="font-size:11px;">${(SHIFT_META[c.shift]||SHIFT_META.morning).icon}</span>
         <span class="txt-sm txt-gray">${c.staffName}${c.completedAt?' · '+c.completedAt:''}</span>
       </div>`).join('')}
     </div>`;
@@ -1112,33 +1126,31 @@ function renderAdminDashboard() {
 function renderSchedule() {
   const staff=getStaff(), schedule=getSchedule();
   scheduleEdits=JSON.parse(JSON.stringify(schedule));
-  DAYS.forEach(d=>{if(!scheduleEdits[d]||Array.isArray(scheduleEdits[d]))scheduleEdits[d]={day:null,night:null};});
+  DAYS.forEach(d=>{if(!scheduleEdits[d]||Array.isArray(scheduleEdits[d]))scheduleEdits[d]={morning:null,midday:null,afternoon:null,night:null};});
+  const SHIFTS_ORDER=['morning','midday','afternoon','night'];
   document.getElementById('scheduleBody').innerHTML=DAYS.map(day=>{
-    const entry=scheduleEdits[day]||{day:null,night:null};
+    const entry=scheduleEdits[day]||{morning:null,midday:null,afternoon:null,night:null};
     const isToday=day===todayDayName();
+    const rows=SHIFTS_ORDER.map((sh,i)=>{
+      const m=SHIFT_META[sh];
+      return `<div class="shift-row" style="padding:12px 16px;${i%2?'background:#fafbfc;':''}">
+        <div class="shift-pill"><span class="s-icon">${m.icon}</span><div><div class="s-label">${m.label}</div><div class="s-time">${m.time}</div></div></div>
+        <select onchange="setShift('${day}','${sh}',this.value)" style="flex:1;">
+          <option value="">— Unassigned —</option>
+          ${staff.map(s=>`<option value="${s.id}" ${entry[sh]==s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
     return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;${isToday?'border:2px solid #90cdf4;':''}">
       <div style="background:${isToday?'#ebf8ff':'#f7fafc'};padding:11px 16px;font-weight:800;font-size:14px;color:${isToday?'#2b6cb0':'#2d3748'};border-bottom:1px solid #e2e8f0;">
         📅 ${day}${isToday?' <span class="badge badge-blue" style="font-size:11px;margin-left:6px;">Today</span>':''}
       </div>
-      <div class="shift-row" style="padding:14px 16px;">
-        <div class="shift-pill"><span class="s-icon">🌅</span><div><div class="s-label">Day Shift</div><div class="s-time">06:00–18:00</div></div></div>
-        <select onchange="setShift('${day}','day',this.value)" style="flex:1;">
-          <option value="">— Unassigned —</option>
-          ${staff.map(s=>`<option value="${s.id}" ${entry.day==s.id?'selected':''}>${s.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="shift-row" style="padding:14px 16px;background:#fafbfc;">
-        <div class="shift-pill"><span class="s-icon">🌙</span><div><div class="s-label">Night Shift</div><div class="s-time">18:00–06:00</div></div></div>
-        <select onchange="setShift('${day}','night',this.value)" style="flex:1;">
-          <option value="">— Unassigned —</option>
-          ${staff.map(s=>`<option value="${s.id}" ${entry.night==s.id?'selected':''}>${s.name}</option>`).join('')}
-        </select>
-      </div>
+      ${rows}
     </div>`;
   }).join('');
 }
 function setShift(day,shift,staffId) {
-  if(!scheduleEdits[day])scheduleEdits[day]={day:null,night:null};
+  if(!scheduleEdits[day])scheduleEdits[day]={morning:null,midday:null,afternoon:null,night:null};
   scheduleEdits[day][shift]=staffId?parseInt(staffId):null;
 }
 async function saveSchedule() {
@@ -1180,15 +1192,15 @@ async function removeStaff(id) {
 // ================================================================
 function renderManageTasks() {
   const tasks=sortByTime(getTasks());
-  const day=tasks.filter(t=>getTaskShift(t)==='day');
-  const night=tasks.filter(t=>getTaskShift(t)==='night');
   const buildList=(list,elId)=>{
     const el=document.getElementById(elId);
     if(!list.length){el.innerHTML='<div class="txt-sm txt-gray" style="padding:10px 0;">No tasks yet.</div>';return;}
     el.innerHTML=list.map(t=>buildTaskRow(t)).join('');
   };
-  buildList(day,'dayTasksList');
-  buildList(night,'nightTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='morning'),   'morningTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='midday'),    'middayTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='afternoon'), 'afternoonTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='night'),     'nightTasksList');
   buildIconPicker('newIconPicker','newIconPreview',null,icon=>{newTaskIcon=icon;});
   updateNewShiftPreview();
 }
@@ -1210,7 +1222,7 @@ function buildEditForm(t) {
   editTaskIcon=t.icon;
   return `<div class="edit-form" id="editform-${t.id}">
     <label>Task Name</label><input type="text" id="edit-name-${t.id}" value="${t.name}">
-    <label>Time (06:00–17:59 = Day, 18:00+ = Night)</label>
+    <label>Time (determines shift automatically)</label>
     <input type="text" id="edit-time-${t.id}" value="${t.time}" placeholder="e.g. 07:30" oninput="updateEditShiftPreview('${t.id}')">
     <div id="edit-shift-preview-${t.id}" style="font-size:13px;color:#718096;margin-bottom:10px;"></div>
     <label>Icon</label>
@@ -1228,15 +1240,14 @@ function updateNewShiftPreview() {
   const el=document.getElementById('newShiftPreview'); if(!el)return;
   if(!val){el.textContent='';return;}
   const h=parseInt(val.split(':')[0],10);
-  el.textContent=`→ Will be added to ${(h>=6&&h<18)?'🌅 Day Shift':'🌙 Night Shift'}`;
+  const sm=SHIFT_META[getTaskShift({time:val})]; el.textContent=`→ Will be added to ${sm.icon} ${sm.label}`;
 }
 
 function updateEditShiftPreview(id) {
   const val=document.getElementById(`edit-time-${id}`)?.value.trim();
   const el=document.getElementById(`edit-shift-preview-${id}`); if(!el)return;
   if(!val){el.textContent='';return;}
-  const h=parseInt(val.split(':')[0],10);
-  el.textContent=`→ Will move to ${(h>=6&&h<18)?'🌅 Day Shift':'🌙 Night Shift'}`;
+  const sm=SHIFT_META[getTaskShift({time:val})]; el.textContent=`→ Will move to ${sm.icon} ${sm.label}`;
 }
 
 function toggleEditTask(id) {
@@ -1326,8 +1337,10 @@ function renderReport() {
   }
 
   const done=comps.filter(c=>c.hasAfter).length;
-  const dayComps=comps.filter(c=>(c.shift||'day')==='day');
-  const nightComps=comps.filter(c=>(c.shift||'day')==='night');
+  const morningComps  =comps.filter(c=>c.shift==='morning');
+  const middayComps   =comps.filter(c=>c.shift==='midday');
+  const afternoonComps=comps.filter(c=>c.shift==='afternoon');
+  const nightComps    =comps.filter(c=>c.shift==='night'||!c.shift);
 
   const renderSection=(list,label)=>{
     if(!list.length)return'';
@@ -1366,8 +1379,10 @@ function renderReport() {
     <div class="card card-blue" style="padding:12px 14px;margin-bottom:14px;font-size:12px;color:#2b6cb0;">
       ☁️ Data &amp; photos synced across all devices
     </div>
-    ${renderSection(dayComps,'🌅 Day Shift')}
-    ${renderSection(nightComps,'🌙 Night Shift')}`;
+    ${renderSection(morningComps,  '🌄 Morning Shift')}
+    ${renderSection(middayComps,   '☀️ Midday Shift')}
+    ${renderSection(afternoonComps,'🌇 Afternoon Shift')}
+    ${renderSection(nightComps,    '🌙 Night Shift')}`;
 }
 
 async function toggleReportPhotos(dateStr, key, headEl) {
@@ -1403,7 +1418,7 @@ function exportReportCSV() {
   comps.forEach(c=>{
     const task=getTasks().find(t=>t.id===c.taskId);
     rows.push([
-      c.date, c.taskName, task?.time||'', (c.shift||'day')==='day'?'Day':'Night',
+      c.date, c.taskName, task?.time||'', (SHIFT_META[c.shift]||SHIFT_META.morning).label,
       c.staffName, c.hasAfter?'Done':c.hasBefore?'Partial':'Pending', c.completedAt||''
     ]);
   });
