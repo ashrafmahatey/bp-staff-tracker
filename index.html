@@ -1671,17 +1671,31 @@ let nbDb = { notices:[], acks:[] };
 let nbSp = null;
 let nbSigInited = false;
 
-function nbLoadDb() {
-  try { nbDb = JSON.parse(localStorage.getItem(NB_STORE)) || { notices:[], acks:[] }; }
-  catch(e) { nbDb = { notices:[], acks:[] }; }
-  if (!Array.isArray(nbDb.notices)) nbDb.notices = [];
-  if (!Array.isArray(nbDb.acks))    nbDb.acks    = [];
+function nbLoadDb(cb) {
+  if (!db) {
+    try { nbDb = JSON.parse(localStorage.getItem(NB_STORE)) || { notices:[], acks:[] }; }
+    catch(e) { nbDb = { notices:[], acks:[] }; }
+    if (!Array.isArray(nbDb.notices)) nbDb.notices = [];
+    if (!Array.isArray(nbDb.acks))    nbDb.acks    = [];
+    if (cb) cb(); return;
+  }
+  db.ref('noticeboard').once('value', snap => {
+    const val = snap.val() || { notices:[], acks:[] };
+    nbDb = { notices: val.notices||[], acks: val.acks||[] };
+    if (!Array.isArray(nbDb.notices)) nbDb.notices = [];
+    if (!Array.isArray(nbDb.acks))    nbDb.acks    = [];
+    if (cb) cb();
+  });
 }
 function nbSaveDb() {
-  try { localStorage.setItem(NB_STORE, JSON.stringify(nbDb)); } catch(e){}
+  if (!db) {
+    try { localStorage.setItem(NB_STORE, JSON.stringify(nbDb)); } catch(e){}
+    return;
+  }
+  db.ref('noticeboard').set({ notices: nbDb.notices, acks: nbDb.acks });
 }
 function nbSeedDemo() {
-  if (nbDb.notices.length) return;
+  if (nbDb.notices.length || CONFIG_SET) return;
   nbDb.notices = [
     { id:nbUid(), cat:'blacklisted', title:'Account #4421 — Fuel Only', body:'No cigarettes, no airtime. Fuel only. Max R300 per fill.', ts: Date.now()-3600000 },
     { id:nbUid(), cat:'blacklisted', title:'Account #1087 — SUSPENDED', body:'Account over limit. No credit until payment received.', ts: Date.now()-7200000 },
@@ -1698,35 +1712,36 @@ function nbFmtDt(ts) { return new Date(ts).toLocaleString('en-ZA',{day:'numeric'
 function nbCatName(cat) { return {blacklisted:'Suspended',campaign:'Campaign / Promotion',general:'General Notices'}[cat]||cat; }
 
 function renderNoticeBoard() {
-  nbLoadDb();
-  nbSeedDemo();
-  nbSigInited = false;
-  nbDb.notices.forEach(n=>n._cat=n.cat);
+  nbLoadDb(function() {
+    nbSeedDemo();
+    nbSigInited = false;
+    nbDb.notices.forEach(n=>n._cat=n.cat);
 
-  const cats = ['blacklisted','campaign','general'];
-  cats.forEach(cat=>{
-    const items = nbDb.notices.filter(n=>n.cat===cat);
-    const cnt = document.getElementById('nb-cnt-'+cat);
-    const cards = document.getElementById('nb-cards-'+cat);
-    if (cnt) cnt.textContent = items.length;
-    if (cards) cards.innerHTML = cat==='blacklisted' ? nbBlacklistedHtml(items) : nbNoticesHtml(items);
-    // reset tick
-    const cb = document.getElementById('nb-cb-'+cat);
-    if (cb) { cb.checked = false; cb.disabled = !items.length; }
-    const tick = document.getElementById('nb-tick-'+cat);
-    if (tick) tick.classList.remove('ticked');
-    // hide section if empty
-    const sec = document.getElementById('nb-sec-'+cat);
-    if (sec) sec.style.display = items.length ? '' : 'none';
+    const cats = ['blacklisted','campaign','general'];
+    cats.forEach(cat=>{
+      const items = nbDb.notices.filter(n=>n.cat===cat);
+      const cnt = document.getElementById('nb-cnt-'+cat);
+      const cards = document.getElementById('nb-cards-'+cat);
+      if (cnt) cnt.textContent = items.length;
+      if (cards) cards.innerHTML = cat==='blacklisted' ? nbBlacklistedHtml(items) : nbNoticesHtml(items);
+      // reset tick
+      const cb = document.getElementById('nb-cb-'+cat);
+      if (cb) { cb.checked = false; cb.disabled = !items.length; }
+      const tick = document.getElementById('nb-tick-'+cat);
+      if (tick) { tick.classList.remove('ticked'); tick.style.display = items.length ? '' : 'none'; }
+      // hide section if empty
+      const sec = document.getElementById('nb-sec-'+cat);
+      if (sec) sec.style.display = items.length ? '' : 'none';
+    });
+
+    const signSec = document.getElementById('nbSignSection');
+    const valMsg  = document.getElementById('nbValMsg');
+    if (signSec) signSec.style.display = 'none';
+    if (valMsg)  valMsg.style.display  = 'none';
+    const success = document.getElementById('nbSuccessBanner');
+    if (success) success.style.display = 'none';
+    nbRenderTodayAcks();
   });
-
-  const signSec = document.getElementById('nbSignSection');
-  const valMsg  = document.getElementById('nbValMsg');
-  if (signSec) signSec.style.display = 'none';
-  if (valMsg)  valMsg.style.display  = 'none';
-  const success = document.getElementById('nbSuccessBanner');
-  if (success) success.style.display = 'none';
-  nbRenderTodayAcks();
 }
 
 function nbBlacklistedHtml(notices) {
@@ -1850,83 +1865,87 @@ function nbSubmitAck() {
     const cb = document.getElementById('nb-cb-'+cat);
     const lbl = document.getElementById('nb-tick-'+cat);
     if (cb) cb.checked = false;
-    if (lbl) lbl.classList.remove('ticked');
+    if (lbl) { lbl.classList.remove('ticked'); }
   });
   nbRenderTodayAcks();
 }
 
 function renderNoticeBoardAdmin() {
-  nbLoadDb();
-  nbSeedDemo();
-  const list = document.getElementById('nbAdminList');
-  const acksPanel = document.getElementById('nbAcksPanel');
-  if (acksPanel) acksPanel.style.display='none';
+  nbLoadDb(function() {
+    nbSeedDemo();
+    const list = document.getElementById('nbAdminList');
+    const acksPanel = document.getElementById('nbAcksPanel');
+    if (acksPanel) acksPanel.style.display='none';
 
-  if (!list) return;
-  if (!nbDb.notices.length) {
-    list.innerHTML='<div class="nb-empty">No notices posted yet.</div>';
-    return;
-  }
-  list.innerHTML = nbDb.notices.map(n=>`
-    <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:12px;">
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span class="nb-cat-pill nb-cp-${nbEsc(n.cat)}">${nbCatName(n.cat)}</span>
-          <span style="font-size:11px;color:#a0aec0;">${nbFmtDt(n.ts)}</span>
+    if (!list) return;
+    if (!nbDb.notices.length) {
+      list.innerHTML='<div class="nb-empty">No notices posted yet.</div>';
+      return;
+    }
+    list.innerHTML = nbDb.notices.map(n=>`
+      <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:12px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="nb-cat-pill nb-cp-${nbEsc(n.cat)}">${nbCatName(n.cat)}</span>
+            <span style="font-size:11px;color:#a0aec0;">${nbFmtDt(n.ts)}</span>
+          </div>
+          <div style="font-weight:700;font-size:15px;">${nbEsc(n.title)}</div>
+          <div style="font-size:13px;color:#4a5568;margin-top:3px;">${nbEsc(n.body)}</div>
         </div>
-        <div style="font-weight:700;font-size:15px;">${nbEsc(n.title)}</div>
-        <div style="font-size:13px;color:#4a5568;margin-top:3px;">${nbEsc(n.body)}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-        <button class="btn" style="font-size:12px;padding:5px 10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;" onclick="nbViewAcks('${nbEsc(n.cat)}')">📋 Acks</button>
-        <button class="btn" style="font-size:12px;padding:5px 10px;background:#fff5f5;color:#c53030;border:1px solid #fed7d7;" onclick="nbDelNotice('${nbEsc(n.id)}')">🗑️ Delete</button>
-      </div>
-    </div>`).join('');
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button class="btn" style="font-size:12px;padding:5px 10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;" onclick="nbViewAcks('${nbEsc(n.cat)}')">📋 Acks</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;background:#fff5f5;color:#c53030;border:1px solid #fed7d7;" onclick="nbDelNotice('${nbEsc(n.id)}')">🗑️ Delete</button>
+        </div>
+      </div>`).join('');
+  });
 }
 
 function nbViewAcks(category) {
-  nbLoadDb();
-  const panel = document.getElementById('nbAcksPanel');
-  const title = document.getElementById('nbAcksTitle');
-  const list  = document.getElementById('nbAcksList');
-  if (!panel || !list) return;
+  nbLoadDb(function() {
+    const panel = document.getElementById('nbAcksPanel');
+    const title = document.getElementById('nbAcksTitle');
+    const list  = document.getElementById('nbAcksList');
+    if (!panel || !list) return;
 
-  const relevant = nbDb.acks.filter(a=>a.sections&&a.sections.includes(category));
-  if (title) title.textContent = `${nbCatName(category)} — Acknowledgements (${relevant.length})`;
-  if (!relevant.length) {
-    list.innerHTML='<div class="nb-empty">No acknowledgements yet for this category.</div>';
-  } else {
-    list.innerHTML = relevant.map(a=>`<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
-      <div style="font-weight:700;">${nbEsc(a.name)} <span style="font-size:12px;color:#718096;font-weight:400;">${nbFmtDt(a.ts)}</span></div>
-      ${a.sig?`<img src="${a.sig}" class="nb-ack-sig" alt="Signature">`:''}
-    </div>`).join('');
-  }
-  panel.style.display='';
-  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    const relevant = nbDb.acks.filter(a=>a.sections&&a.sections.includes(category));
+    if (title) title.textContent = `${nbCatName(category)} — Acknowledgements (${relevant.length})`;
+    if (!relevant.length) {
+      list.innerHTML='<div class="nb-empty">No acknowledgements yet for this category.</div>';
+    } else {
+      list.innerHTML = relevant.map(a=>`<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <div style="font-weight:700;">${nbEsc(a.name)} <span style="font-size:12px;color:#718096;font-weight:400;">${nbFmtDt(a.ts)}</span></div>
+        ${a.sig?`<img src="${a.sig}" class="nb-ack-sig" alt="Signature">`:''}
+      </div>`).join('');
+    }
+    panel.style.display='';
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
 }
 
 function nbPostNotice() {
-  nbLoadDb();
   const cat   = document.getElementById('nbFCat').value;
   const title = (document.getElementById('nbFTitle').value||'').trim();
   const body  = (document.getElementById('nbFBody').value||'').trim();
   if (!title) { showToast('Enter a title for the notice'); return; }
-  nbDb.notices.unshift({ id:nbUid(), cat, title, body, ts:Date.now() });
-  nbSaveDb();
-  document.getElementById('nbFTitle').value='';
-  document.getElementById('nbFBody').value='';
-  document.getElementById('nbFCat').value='general';
-  showToast('✅ Notice posted!');
-  renderNoticeBoardAdmin();
+  nbLoadDb(function() {
+    nbDb.notices.unshift({ id:nbUid(), cat, title, body, ts:Date.now() });
+    nbSaveDb();
+    document.getElementById('nbFTitle').value='';
+    document.getElementById('nbFBody').value='';
+    document.getElementById('nbFCat').value='general';
+    showToast('✅ Notice posted!');
+    renderNoticeBoardAdmin();
+  });
 }
 
 function nbDelNotice(id) {
   if (!confirm('Delete this notice?')) return;
-  nbLoadDb();
-  nbDb.notices = nbDb.notices.filter(n=>n.id!==id);
-  nbSaveDb();
-  showToast('🗑️ Notice deleted');
-  renderNoticeBoardAdmin();
+  nbLoadDb(function() {
+    nbDb.notices = nbDb.notices.filter(n=>n.id!==id);
+    nbSaveDb();
+    showToast('🗑️ Notice deleted');
+    renderNoticeBoardAdmin();
+  });
 }
 
 // ================================================================
