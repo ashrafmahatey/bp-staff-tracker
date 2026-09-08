@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BP Wetlands — Staff Task Tracker v3</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <!-- Signature Pad (for Notice Board) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* LOADING */
+    #loadingScreen { position:fixed; inset:0; background:linear-gradient(135deg,#005EB8,#003d7a); display:flex; align-items:center; justify-content:center; z-index:9999; flex-direction:column; color:#fff; }
+    #loadingScreen .load-logo { font-size:64px; margin-bottom:16px; animation:pulse 1.4s ease-in-out infinite; }
+    #loadingScreen .load-title { font-size:22px; font-weight:800; }
+    #loadingScreen .load-sub { font-size:14px; opacity:.75; margin-top:6px; }
+    #loadingScreen .load-version { position:absolute; bottom:20px; font-size:11px; opacity:.5; letter-spacing:1px; }
+    #loadingScreen .load-dots { margin-top:24px; display:flex; gap:8px; }
+    #loadingScreen .load-dots span { width:10px; height:10px; border-radius:50%; background:#fff; animation:dots 1.2s ease-in-out infinite; }
+    #loadingScreen .load-dots span:nth-child(2) { animation-delay:.2s; }
+    #loadingScreen .load-dots span:nth-child(3) { animation-delay:.4s; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    @keyframes dots  { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+
+    /* SETUP SCREEN */
+    #setupScreen { position:fixed; inset:0; background:#f0f4f8; z-index:9998; overflow-y:auto; padding:24px 16px; display:none; }
+
+    /* HEADER */
+    #appHeader { background:linear-gradient(135deg,#005EB8,#003d7a); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:200; box-shadow:0 3px 12px rgba(0,0,0,.25); }
+    .bp-logo { width:36px; height:36px; background:#FFE000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; color:#005EB8; flex-shrink:0; }
+    #appHeader h1 { font-size:17px; font-weight:700; line-height:1.2; }
+    .header-sub { font-size:12px; opacity:.8; margin-top:1px; }
+    #backBtn { background:rgba(255,255,255,.18); border:none; color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-size:18px; flex-shrink:0; }
+
+    /* PAGES */
+    .page { display:none; padding:16px; max-width:520px; margin:0 auto; padding-bottom:48px; }
+    .page.active { display:block; }
+
+    /* CARDS */
+    .card { background:#fff; border-radius:16px; padding:18px; margin-bottom:14px; box-shadow:0 2px 10px rgba(0,0,0,.07); }
+    .card-blue   { background:linear-gradient(135deg,#ebf8ff,#e6f0fa); border:1px solid #bee3f8; }
+    .card-green  { background:#f0fff4; border:1px solid #c6f6d5; }
+    .card-yellow { background:#fffff0; border:1px solid #fefcbf; }
+    .card-red    { background:#fff5f5; border:1px solid #fed7d7; }
+    .card-orange { background:#fffaf0; border:1px solid #fbd38d; }
+
+    /* SHIFT BANNERS */
+    .shift-banner { border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px; }
+    .shift-banner.morning   { background:linear-gradient(135deg,#fff9e6,#fef3c7); border:1.5px solid #f6b93b; }
+    .shift-banner.midday    { background:linear-gradient(135deg,#e6f9f0,#d1fae5); border:1.5px solid #34d399; }
+    .shift-banner.afternoon { background:linear-gradient(135deg,#fff3e6,#ffe8cc); border:1.5px solid #f97316; }
+    .shift-banner.night     { background:linear-gradient(135deg,#e8eaf6,#ede7f6); border:1.5px solid #b39ddb; }
+    .shift-banner .shift-icon { font-size:32px; flex-shrink:0; }
+    .shift-banner .shift-name { font-size:18px; font-weight:800; }
+    .shift-banner .shift-time { font-size:13px; opacity:.75; margin-top:2px; }
+
+    .shift-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f0f4f8; }
+    .shift-row:last-child { border-bottom:none; }
+    .shift-pill { display:flex; align-items:center; gap:8px; min-width:130px; }
+    .shift-pill .s-icon  { font-size:22px; }
+    .shift-pill .s-label { font-size:13px; font-weight:700; }
+    .shift-pill .s-time  { font-size:11px; color:#a0aec0; }
+
+    /* BUTTONS */
+    .btn { display:block; width:100%; padding:15px 18px; border:none; border-radius:13px; font-size:16px; font-weight:600; cursor:pointer; text-align:center; margin-bottom:11px; transition:transform .12s,box-shadow .12s; -webkit-tap-highlight-color:transparent; }
+    .btn:active { transform:scale(0.97); }
+    .btn-primary { background:linear-gradient(135deg,#005EB8,#0070db); color:#fff; box-shadow:0 4px 14px rgba(0,94,184,.35); }
+    .btn-success { background:linear-gradient(135deg,#38a169,#48bb78); color:#fff; box-shadow:0 4px 14px rgba(56,161,105,.35); }
+    .btn-danger  { background:linear-gradient(135deg,#e53e3e,#fc5c5c); color:#fff; }
+    .btn-outline { background:#fff; color:#005EB8; border:2px solid #005EB8; }
+    .btn-gray    { background:#edf2f7; color:#4a5568; }
+    .btn-sm      { padding:9px 14px; font-size:13px; display:inline-block; width:auto; margin-bottom:0; }
+    .btn-icon    { background:none; border:none; cursor:pointer; padding:6px 8px; border-radius:8px; font-size:18px; transition:background .15s; }
+    .btn-icon:hover { background:#edf2f7; }
+
+    /* STAFF */
+    .staff-btn { display:flex; align-items:center; gap:14px; padding:14px 16px; background:#fff; border:2px solid #e2e8f0; border-radius:14px; margin-bottom:10px; cursor:pointer; width:100%; text-align:left; transition:border-color .2s,box-shadow .2s; }
+    .staff-btn:hover { border-color:#005EB8; box-shadow:0 0 0 3px rgba(0,94,184,.12); }
+    .staff-btn.on-shift { border-color:#38a169; background:#f0fff4; }
+    .avatar { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; flex-shrink:0; }
+
+    /* TASKS */
+    .task-item { display:flex; align-items:center; gap:12px; padding:15px 14px; background:#fff; border:2px solid #e2e8f0; border-radius:14px; margin-bottom:10px; cursor:pointer; transition:border-color .2s,transform .1s; }
+    .task-item:active { transform:scale(0.98); }
+    .task-item.done { border-color:#48bb78; background:#f0fff4; }
+    .task-item.part { border-color:#d69e2e; background:#fffff0; }
+
+    /* BADGES */
+    .badge { display:inline-flex; align-items:center; padding:4px 11px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+    .badge-green  { background:#c6f6d5; color:#22543d; }
+    .badge-yellow { background:#fefcbf; color:#744210; }
+    .badge-red    { background:#fed7d7; color:#742a2a; }
+    .badge-gray   { background:#edf2f7; color:#4a5568; }
+    .badge-blue   { background:#bee3f8; color:#1a365d; }
+    .badge-purple { background:#e9d8fd; color:#44337a; }
+    .badge-day    { background:#fefcbf; color:#744210; }
+    .badge-night  { background:#e9d8fd; color:#44337a; }
+
+    /* PROGRESS */
+    .progress-wrap { background:#e2e8f0; border-radius:10px; height:9px; overflow:hidden; margin:10px 0; }
+    .progress-fill { background:linear-gradient(90deg,#005EB8,#0096ff); height:100%; border-radius:10px; transition:width .5s; }
+
+    /* PHOTO */
+    .photo-step { background:#f7fafc; border:2px dashed #cbd5e0; border-radius:14px; padding:22px 16px; text-align:center; position:relative; margin-bottom:14px; cursor:pointer; transition:border-color .2s; }
+    .photo-step.captured { border-style:solid; border-color:#48bb78; padding:10px; }
+    .photo-step.disabled { opacity:.45; pointer-events:none; }
+    .photo-step input[type="file"] { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2; }
+    .photo-step img { width:100%; border-radius:10px; display:block; }
+    .photo-step .photo-ok { font-size:13px; color:#38a169; font-weight:600; margin-top:6px; }
+
+    /* ICON PICKER */
+    .icon-picker-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:5px; padding:10px; background:#f7fafc; border-radius:12px; margin-top:8px; }
+    .icon-opt { font-size:22px; text-align:center; padding:6px 2px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:background .15s,border-color .15s; }
+    .icon-opt:hover { background:#e2e8f0; }
+    .icon-opt.selected { border-color:#005EB8; background:#ebf8ff; }
+
+    /* EDIT FORM */
+    .edit-form { background:#f0f7ff; border-radius:12px; padding:14px; margin-top:8px; border:1.5px solid #bee3f8; animation:slideDown .15s ease; }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+    .edit-form label { font-size:12px; font-weight:700; color:#4a5568; display:block; margin-bottom:4px; }
+
+    /* INPUTS */
+    select { border:1.5px solid #e2e8f0; border-radius:9px; padding:9px 30px 9px 12px; font-size:14px; background:#fff; color:#1a202c; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23718096' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; flex:1; }
+    input[type="text"], input[type="password"] { border:1.5px solid #e2e8f0; border-radius:11px; padding:12px 14px; font-size:15px; width:100%; margin-bottom:10px; outline:none; transition:border-color .2s; background:#fff; }
+    input:focus { border-color:#005EB8; }
+
+    /* MANAGE LIST */
+    .manage-item { border-bottom:1px solid #f0f4f8; }
+    .manage-item:last-child { border-bottom:none; }
+    .manage-row  { display:flex; align-items:center; gap:10px; padding:12px 0; }
+    .manage-del  { background:none; border:none; cursor:pointer; color:#e53e3e; font-size:20px; padding:0 4px; flex-shrink:0; }
+
+    /* REPORT */
+    .report-task-card { border:1px solid #e2e8f0; border-radius:14px; margin-bottom:14px; overflow:hidden; }
+    .report-task-head { background:#f7fafc; padding:12px 15px; }
+    .report-photos    { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; }
+    .report-photo     { text-align:center; }
+    .report-photo img { width:100%; border-radius:9px; border:1px solid #e2e8f0; }
+    .report-photo-empty { background:#f7fafc; border-radius:9px; padding:28px 10px; color:#a0aec0; font-size:12px; text-align:center; }
+    .report-photo-label { font-size:11px; font-weight:700; color:#718096; text-transform:uppercase; margin-top:5px; letter-spacing:.04em; text-align:center; }
+
+    /* DATE NAV */
+    .date-nav { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+    .date-nav-btn  { background:#edf2f7; border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-size:17px; }
+    .date-nav-date { flex:1; text-align:center; font-weight:700; font-size:14px; color:#2d3748; }
+
+    /* WEEK PILL */
+    .week-row { display:flex; gap:4px; margin-bottom:14px; }
+    .week-pill { flex:1; padding:8px 4px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; text-align:center; cursor:pointer; font-size:11px; }
+    .week-pill .wp-day   { font-weight:700; color:#718096; }
+    .week-pill .wp-icons { font-size:15px; margin-top:2px; }
+    .week-pill.today { background:#ebf8ff; border-color:#90cdf4; }
+
+    .sec-header { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#718096; margin:18px 0 8px; }
+
+    /* TOAST */
+    #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a202c; color:#fff; padding:12px 22px; border-radius:30px; font-size:14px; font-weight:500; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; max-width:90vw; }
+    #toast.show { opacity:1; }
+
+    /* SYNC INDICATOR */
+    #syncDot { position:fixed; top:14px; right:14px; width:10px; height:10px; border-radius:50%; background:#48bb78; z-index:300; box-shadow:0 0 0 2px rgba(255,255,255,.5); }
+    #syncDot.syncing { background:#d69e2e; animation:pulse 1s infinite; }
+    #syncDot.offline { background:#e53e3e; }
+
+    /* HELPERS */
+    .hr { height:1px; background:#e2e8f0; margin:14px 0; }
+    .flex-center { display:flex; align-items:center; }
+    .gap-8  { gap:8px; }
+    .mt-8   { margin-top:8px; }
+    .mt-12  { margin-top:12px; }
+    .mb-0   { margin-bottom:0; }
+    .txt-center { text-align:center; }
+    .txt-sm  { font-size:13px; }
+    .txt-gray { color:#718096; }
+    .txt-bold { font-weight:700; }
+    .w-full  { width:100%; }
+
+    /* ====== NOTICE BOARD ====== */
+    .nb-section { margin-bottom:24px; }
+    .nb-cat-hdr { display:flex; align-items:center; gap:8px; padding-bottom:8px; margin-bottom:12px; border-bottom:1.5px solid #e2e8f0; }
+    .nb-cat-pip { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .nb-cat-label { font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#4a5568; flex:1; }
+    .nb-cat-count { font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; }
+    .nb-s-suspended .nb-cat-pip   { background:#e53e3e; }
+    .nb-s-suspended .nb-cat-hdr   { border-color:#fed7d7; }
+    .nb-s-suspended .nb-cat-count { background:#fff5f5; color:#e53e3e; }
+    .nb-s-campaign  .nb-cat-pip   { background:#4299e1; }
+    .nb-s-campaign  .nb-cat-hdr   { border-color:#bee3f8; }
+    .nb-s-campaign  .nb-cat-count { background:#ebf8ff; color:#2b6cb0; }
+    .nb-s-general   .nb-cat-pip   { background:#38a169; }
+    .nb-s-general   .nb-cat-hdr   { border-color:#c6f6d5; }
+    .nb-s-general   .nb-cat-count { background:#f0fff4; color:#276749; }
+
+    .nb-bl-card { background:#fff; border:1px solid #fed7d7; border-left:3px solid #e53e3e; border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.07); margin-bottom:4px; }
+    .nb-bl-list { width:100%; border-collapse:collapse; }
+    .nb-bl-list thead th { background:#fff5f5; color:#e53e3e; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:8px 14px; text-align:left; border-bottom:1px solid #fed7d7; }
+    .nb-bl-list tbody tr { border-bottom:1px solid #f0f4f8; }
+    .nb-bl-list tbody tr:last-child { border-bottom:none; }
+    .nb-bl-list tbody tr:hover { background:#f7fafc; }
+    .nb-bl-list td { padding:10px 14px; font-size:13px; vertical-align:top; }
+    .nb-bl-name { font-weight:700; color:#1a202c; font-size:13px; }
+    .nb-bl-detail { font-size:12px; color:#718096; margin-top:2px; line-height:1.4; }
+
+    .nb-notice-card { background:#fff; border:1px solid #e2e8f0; border-left:3px solid #e2e8f0; border-radius:14px; padding:14px 16px; margin-bottom:9px; box-shadow:0 2px 10px rgba(0,0,0,.07); }
+    .nb-s-campaign .nb-notice-card { border-left-color:#4299e1; }
+    .nb-s-general  .nb-notice-card { border-left-color:#38a169; }
+    .nb-notice-title { font-weight:700; font-size:14px; color:#1a202c; margin-bottom:5px; }
+    .nb-notice-body  { font-size:13px; color:#4a5568; line-height:1.7; white-space:pre-wrap; }
+    .nb-notice-meta  { font-size:11px; color:#a0aec0; margin-top:6px; }
+
+    .nb-sec-tick { display:flex; align-items:center; gap:11px; margin-top:12px; padding:13px 16px; background:#f7fafc; border:1px solid #e2e8f0; border-radius:13px; cursor:pointer; user-select:none; transition:background .12s; }
+    .nb-sec-tick:hover { background:#edf2f7; }
+    .nb-sec-tick input[type=checkbox] { width:18px; height:18px; accent-color:#005EB8; cursor:pointer; flex-shrink:0; }
+    .nb-sec-tick-label { font-size:13px; font-weight:600; color:#4a5568; }
+    .nb-sec-tick.ticked .nb-sec-tick-label { color:#276749; }
+    .nb-sec-tick.ticked { background:#f0fff4; border-color:#c6f6d5; }
+
+    .nb-sign-section { margin-top:10px; background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.10); }
+    .nb-sign-hdr { padding:14px 18px; background:#fffff0; border-bottom:1px solid #fefcbf; display:flex; align-items:center; gap:10px; }
+    .nb-sign-hdr-icon { font-size:20px; }
+    .nb-sign-hdr-text { font-weight:700; font-size:15px; color:#1a202c; }
+    .nb-sign-hdr-sub { font-size:12px; color:#718096; margin-top:1px; }
+    .nb-sign-body { padding:16px; }
+    .nb-sig-wrap { position:relative; border:2px dashed #e2e8f0; border-radius:14px; overflow:hidden; background:white; cursor:crosshair; margin-bottom:14px; }
+    #nbSigCanvas { display:block; width:100%; touch-action:none; }
+    .nb-sig-hint { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; pointer-events:none; }
+    .nb-sig-hint-icon { font-size:26px; opacity:.3; }
+    .nb-sig-hint-text { font-size:12px; color:#a0aec0; }
+    .nb-sig-clear { position:absolute; top:8px; right:8px; font-size:11px; font-weight:600; color:#718096; background:rgba(255,255,255,.92); border:1px solid #e2e8f0; border-radius:4px; padding:3px 9px; cursor:pointer; border-color:transparent; }
+    .nb-sig-clear:hover { background:white; color:#1a202c; }
+    .nb-val-msg { background:#fff5f5; border:1px solid #fed7d7; border-radius:11px; padding:10px 14px; font-size:13px; color:#e53e3e; font-weight:600; margin-bottom:14px; display:none; }
+
+    .nb-acks-today { margin-top:18px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; box-shadow:0 2px 10px rgba(0,0,0,.07); }
+    .nb-acks-hdr { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#718096; margin-bottom:10px; }
+    .nb-chip-row { display:flex; flex-wrap:wrap; gap:7px; }
+    .nb-chip { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:4px 12px; border-radius:20px; background:#f0fff4; color:#276749; border:1px solid #c6f6d5; }
+    .nb-success-banner { background:#f0fff4; border:1px solid #c6f6d5; border-radius:13px; padding:14px 16px; font-weight:600; font-size:14px; color:#276749; display:none; align-items:center; gap:10px; margin-bottom:14px; }
+    .nb-success-banner.show { display:flex; }
+
+    .nb-admin-row { display:flex; align-items:flex-start; gap:10px; padding:11px 0; border-bottom:1px solid #f0f4f8; }
+    .nb-admin-row:last-child { border-bottom:none; padding-bottom:0; }
+    .nb-admin-row-left { flex:1; min-width:0; }
+    .nb-admin-row-title { font-weight:600; font-size:13px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .nb-admin-row-meta { display:flex; align-items:center; gap:7px; font-size:11px; color:#a0aec0; flex-wrap:wrap; }
+    .nb-cat-pill { font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:1px 7px; border-radius:20px; }
+    .nb-cp-blacklisted { background:#fff5f5; color:#e53e3e; }
+    .nb-cp-campaign    { background:#ebf8ff; color:#2b6cb0; }
+    .nb-cp-general     { background:#f0fff4; color:#276749; }
+    .nb-ack-sig { width:90px; height:36px; object-fit:contain; background:white; border:1px solid #e2e8f0; border-radius:4px; flex-shrink:0; }
+    .nb-empty { padding:16px 0 4px; font-size:13px; color:#a0aec0; text-align:center; }
+
+    @media print {
+      .no-print { display:none !important; }
+      body { background:#fff; }
+      #appHeader { background:#005EB8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .card { box-shadow:none; border:1px solid #e2e8f0; page-break-inside:avoid; }
+      #loadingScreen, #setupScreen, #syncDot { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="load-logo">⛽</div>
+  <div class="load-title">BP Wetlands</div>
+  <div class="load-sub" id="loadMsg">Connecting to cloud…</div>
+  <div class="load-dots"><span></span><span></span><span></span></div>
+  <div class="load-version">FIREBASE v3</div>
+</div>
+
+<!-- SETUP SCREEN (shown if Firebase config missing) -->
+<div id="setupScreen">
+  <div style="max-width:480px;margin:0 auto;">
+    <div style="text-align:center;padding:24px 0 20px;">
+      <div style="font-size:56px;">🔧</div>
+      <div style="font-size:22px;font-weight:800;color:#005EB8;margin-top:8px;">Firebase Setup Required</div>
+      <div style="font-size:14px;color:#718096;margin-top:6px;">One-time setup — takes about 3 minutes</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px;">📋 Steps to set up cloud sync:</div>
+      <div style="font-size:14px;line-height:1.9;color:#4a5568;">
+        <strong>1.</strong> Go to <strong>console.firebase.google.com</strong><br>
+        <strong>2.</strong> Click <strong>"Create a project"</strong><br>
+        <strong>3.</strong> Name it: <em>BP Wetlands Staff Tracker</em><br>
+        <strong>4.</strong> Turn off Google Analytics → Create project<br>
+        <strong>5.</strong> Click the <strong>&lt;/&gt;</strong> web icon → Name it <em>Staff Tracker</em> → Register<br>
+        <strong>6.</strong> Copy the <code>firebaseConfig</code> block shown<br>
+        <strong>7.</strong> Go to <strong>Build → Realtime Database → Create Database</strong><br>
+        <strong>8.</strong> Choose <em>Europe-West</em> → Start in <strong>test mode</strong><br>
+        <strong>9.</strong> Paste your config to Claude and ask to add it to the app
+      </div>
+    </div>
+    <div class="card card-yellow" style="padding:14px 16px;">
+      <div style="font-size:13px;color:#744210;">⚠️ The app needs Firebase to work across devices. Paste your config in the Claude chat and I'll update the file for you.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC DOT -->
+<div id="syncDot" title="Cloud sync status" style="display:none;"></div>
+
+<div id="appHeader" style="display:none;">
+  <button id="backBtn" class="no-print" onclick="goBack()" style="display:none">←</button>
+  <div class="bp-logo">BP</div>
+  <div style="flex:1">
+    <h1 id="headerTitle">Staff Task Tracker</h1>
+    <div class="header-sub" id="headerSub">BP Wetlands · Lansdowne</div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<!-- ==================== HOME ==================== -->
+<div class="page" id="pg-home">
+  <div style="text-align:center;padding:24px 0 16px;">
+    <div style="font-size:60px;margin-bottom:6px;">⛽</div>
+    <div style="font-size:22px;font-weight:800;color:#005EB8;" id="homeBizName">BP Wetlands</div>
+    <div style="font-size:14px;color:#718096;margin-top:3px;">Staff Task Management System</div>
+  </div>
+  <div class="card card-blue" style="text-align:center;padding:14px 18px;">
+    <div style="font-size:12px;color:#2b6cb0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">TODAY</div>
+    <div style="font-size:18px;font-weight:700;color:#1a365d;margin-top:4px;" id="homeDateDisplay"></div>
+  </div>
+  <div id="homeShiftBanner"></div>
+  <div id="homeLiveProgress"></div>
+  <button class="btn btn-primary" onclick="nav('pg-staff-login')" style="font-size:17px;padding:18px;">👤 &nbsp;Staff Login</button>
+  <button class="btn btn-outline" onclick="nav('pg-noticeboard')" style="background:#fff5f5;border-color:#e53e3e;color:#c53030;">📢 &nbsp;Daily Notice Board</button>
+  <button class="btn btn-outline" onclick="promptAdminLogin()">🔒 &nbsp;Manager / Admin</button>
+</div>
+
+<!-- ==================== STAFF LOGIN ==================== -->
+<div class="page" id="pg-staff-login">
+  <div id="loginShiftBanner"></div>
+  <div class="sec-header">Select your name</div>
+  <div id="staffLoginList"></div>
+</div>
+
+<!-- ==================== MY TASKS ==================== -->
+<div class="page" id="pg-my-tasks">
+  <div id="myShiftBanner"></div>
+  <div class="card" id="myTasksProgress" style="display:none;">
+    <div class="flex-center gap-8" style="justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <div style="font-size:17px;font-weight:800;" id="myTasksLabel">—</div>
+        <div style="font-size:12px;color:#718096;" id="myTasksDate"></div>
+      </div>
+      <div id="myTasksBadge"></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="myTasksBar" style="width:0%"></div></div>
+  </div>
+  <div id="myTasksList"></div>
+  <div id="myTasksEmpty" style="display:none;text-align:center;padding:44px 20px;color:#718096;">
+    <div style="font-size:52px;margin-bottom:12px;">📋</div>
+    <div style="font-weight:700;font-size:16px;">No tasks for this shift yet</div>
+    <div style="font-size:14px;margin-top:4px;">Ask your manager to add tasks in Admin → Tasks.</div>
+  </div>
+</div>
+
+<!-- ==================== TASK DETAIL ==================== -->
+<div class="page" id="pg-task-detail">
+  <div id="taskDetailBody"></div>
+</div>
+
+<!-- ==================== ADMIN LOGIN ==================== -->
+<div class="page" id="pg-admin-login">
+  <div class="card" style="margin-top:16px;">
+    <div style="font-size:36px;text-align:center;margin-bottom:12px;">🔐</div>
+    <h2 style="font-weight:700;font-size:18px;text-align:center;margin-bottom:4px;">Manager Access</h2>
+    <p style="color:#718096;font-size:14px;text-align:center;margin-bottom:20px;">Enter your PIN to continue</p>
+    <input type="password" id="adminPinInput" placeholder="Enter PIN" inputmode="numeric" maxlength="6"
+           onkeydown="if(event.key==='Enter')checkPin()">
+    <button class="btn btn-primary mb-0" onclick="checkPin()">Unlock →</button>
+  </div>
+  <p class="txt-center txt-sm txt-gray mt-12">Default PIN: <strong>1234</strong></p>
+</div>
+
+<!-- ==================== ADMIN DASHBOARD ==================== -->
+<div class="page" id="pg-admin">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+    <button class="btn btn-primary mb-0" onclick="nav('pg-report')">📊 Reports</button>
+    <button class="btn btn-outline mb-0" onclick="nav('pg-schedule')">📅 Schedule</button>
+    <button class="btn btn-outline mb-0" onclick="nav('pg-manage-staff')">👥 Staff</button>
+    <button class="btn btn-outline mb-0" onclick="nav('pg-manage-tasks')">📋 Tasks</button>
+    <button class="btn btn-outline mb-0" onclick="nav('pg-noticeboard-admin')" style="grid-column:1/-1;background:#fff5f5;border-color:#fed7d7;color:#c53030;">📢 Notice Board</button>
+  </div>
+  <button class="btn btn-gray mb-0" onclick="nav('pg-settings')" style="margin-bottom:14px;">⚙️ Settings</button>
+  <div class="card card-blue" style="padding:12px 16px;margin-bottom:10px;">
+    <div style="font-size:12px;color:#2b6cb0;font-weight:700;">☁️ CLOUD SYNC ACTIVE</div>
+    <div style="font-size:13px;color:#1a365d;margin-top:3px;">All data syncs in real-time across devices. Reports update instantly when staff complete tasks.</div>
+  </div>
+  <div class="sec-header">Today's Shifts</div>
+  <div id="adminTodayShifts"></div>
+  <div class="sec-header">Today's Completion</div>
+  <div id="adminTodaySummary"></div>
+  <div class="sec-header">This Week</div>
+  <div id="adminWeekSummary"></div>
+</div>
+
+<!-- ==================== SCHEDULE ==================== -->
+<div class="page" id="pg-schedule">
+  <div class="card card-blue" style="padding:14px 16px;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;color:#1a365d;margin-bottom:4px;">How the shift schedule works</div>
+    <div style="font-size:13px;color:#2b6cb0;line-height:1.6;">
+      Assign <strong>one person</strong> per shift per day.<br>
+      🌄 <strong>Morning</strong>: 06:00–11:00 &nbsp;·&nbsp; ☀️ <strong>Midday</strong>: 11:00–16:00 &nbsp;·&nbsp; 🌇 <strong>Afternoon</strong>: 16:00–18:00 &nbsp;·&nbsp; 🌙 <strong>Night</strong>: 18:00–06:00
+    </div>
+  </div>
+  <div id="scheduleBody"></div>
+  <button class="btn btn-success mt-12" onclick="saveSchedule()">💾 &nbsp;Save Schedule</button>
+</div>
+
+<!-- ==================== MANAGE STAFF ==================== -->
+<div class="page" id="pg-manage-staff">
+  <div class="card" id="staffManageList" style="padding:8px 16px;"></div>
+  <div class="sec-header">Add New Staff Member</div>
+  <div class="flex-center gap-8">
+    <input type="text" id="newStaffInput" placeholder="Full name" style="flex:1;margin-bottom:0;">
+    <button class="btn btn-primary btn-sm" onclick="addStaff()" style="margin-left:6px;white-space:nowrap;">+ Add</button>
+  </div>
+</div>
+
+<!-- ==================== MANAGE TASKS ==================== -->
+<div class="page" id="pg-manage-tasks">
+  <div class="card card-blue" style="padding:13px 15px;margin-bottom:14px;font-size:13px;color:#2b6cb0;">
+    <strong>Tip:</strong> Tasks are assigned to a shift based on their start time.
+  </div>
+  <div class="sec-header">🌄 Morning &nbsp;<span class="badge badge-yellow">06:00 – 11:00</span></div>
+  <div class="card" id="morningTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">☀️ Midday &nbsp;<span class="badge badge-green">11:00 – 16:00</span></div>
+  <div class="card" id="middayTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">🌇 Afternoon &nbsp;<span class="badge badge-orange">16:00 – 18:00</span></div>
+  <div class="card" id="afternoonTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">🌙 Night &nbsp;<span class="badge badge-purple">18:00 – 06:00</span></div>
+  <div class="card" id="nightTasksList" style="padding:8px 16px;"></div>
+  <div class="sec-header">Add New Task</div>
+  <div class="card">
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Task Name</label>
+    <input type="text" id="newTaskNameInput" placeholder="e.g. Toilet Cleaning">
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Time Required</label>
+    <input type="text" id="newTaskTimeInput" placeholder="e.g. 07:30" oninput="updateNewShiftPreview()">
+    <div id="newShiftPreview" style="font-size:13px;color:#718096;margin-bottom:10px;"></div>
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:6px;">Icon</label>
+    <div style="font-size:28px;text-align:center;margin-bottom:4px;" id="newIconPreview">📋</div>
+    <div class="icon-picker-grid" id="newIconPicker"></div>
+    <button class="btn btn-primary mb-0 mt-12" onclick="addTask()">+ Add Task</button>
+  </div>
+</div>
+
+<!-- ==================== REPORT ==================== -->
+<div class="page" id="pg-report">
+  <div class="date-nav no-print">
+    <button class="date-nav-btn" onclick="shiftReportDate(-1)">◀</button>
+    <div class="date-nav-date" id="reportDateLabel"></div>
+    <button class="date-nav-btn" onclick="shiftReportDate(1)">▶</button>
+  </div>
+  <div class="no-print" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+    <button class="btn btn-outline mb-0" onclick="window.print()">🖨️ &nbsp;Print / PDF</button>
+    <button class="btn btn-outline mb-0" onclick="exportReportCSV()">📥 &nbsp;Export CSV</button>
+  </div>
+  <div id="reportBody"></div>
+</div>
+
+<!-- ==================== SETTINGS ==================== -->
+<div class="page" id="pg-settings">
+  <div class="card">
+    <div style="font-weight:700;font-size:16px;margin-bottom:14px;">🔐 Change Admin PIN</div>
+    <input type="password" id="curPinInput"  placeholder="Current PIN" inputmode="numeric" maxlength="6">
+    <input type="password" id="newPinInput"  placeholder="New PIN (4–6 digits)" inputmode="numeric" maxlength="6">
+    <input type="password" id="confPinInput" placeholder="Confirm new PIN" inputmode="numeric" maxlength="6">
+    <button class="btn btn-primary mb-0" onclick="changePin()">Update PIN</button>
+  </div>
+  <div class="card mt-12">
+    <div style="font-weight:700;font-size:16px;margin-bottom:12px;">🏢 Business Name</div>
+    <input type="text" id="bizNameInput" placeholder="Business name">
+    <button class="btn btn-primary mb-0" onclick="saveBizName()">Save</button>
+  </div>
+  <div class="card mt-12">
+    <div style="font-weight:700;font-size:16px;margin-bottom:12px;">🗑️ Data Management</div>
+    <p class="txt-sm txt-gray" style="margin-bottom:12px;">Clear all task completion records. Schedule, staff and tasks are kept.</p>
+    <button class="btn btn-danger mb-0" onclick="clearCompletions()">Clear All Records</button>
+  </div>
+  <div class="card mt-12 card-blue" style="padding:14px 16px;">
+    <div style="font-weight:700;font-size:14px;color:#1a365d;margin-bottom:6px;">☁️ Cloud Sync Info</div>
+    <div style="font-size:13px;color:#2b6cb0;line-height:1.7;">
+      Data syncs in real-time across all devices.<br>
+      📸 Photos are stored locally on each device.<br>
+      To see photos, view reports on the device that took them.
+    </div>
+  </div>
+</div>
+
+<!-- ==================== NOTICE BOARD (STAFF) ==================== -->
+<div class="page" id="pg-noticeboard">
+  <div class="nb-success-banner" id="nbSuccessBanner"><span>✓</span><span id="nbSuccessMsg">Acknowledgement recorded — thank you.</span></div>
+
+  <!-- SUSPENDED SECTION -->
+  <div class="nb-section nb-s-suspended" id="nb-sec-blacklisted">
+    <div class="nb-cat-hdr">
+      <div class="nb-cat-pip"></div>
+      <div class="nb-cat-label">Account Customers — Suspended</div>
+      <span class="nb-cat-count" id="nb-cnt-blacklisted">0</span>
+    </div>
+    <div id="nb-cards-blacklisted"></div>
+    <label class="nb-sec-tick" id="nb-tick-blacklisted" style="display:none">
+      <input type="checkbox" id="nb-cb-blacklisted" onchange="nbOnTick('blacklisted')">
+      <span class="nb-sec-tick-label">I have read and noted all suspended accounts</span>
+    </label>
+  </div>
+
+  <!-- CAMPAIGN SECTION -->
+  <div class="nb-section nb-s-campaign" id="nb-sec-campaign">
+    <div class="nb-cat-hdr">
+      <div class="nb-cat-pip"></div>
+      <div class="nb-cat-label">Campaign Currently Running</div>
+      <span class="nb-cat-count" id="nb-cnt-campaign">0</span>
+    </div>
+    <div id="nb-cards-campaign"></div>
+    <label class="nb-sec-tick" id="nb-tick-campaign" style="display:none">
+      <input type="checkbox" id="nb-cb-campaign" onchange="nbOnTick('campaign')">
+      <span class="nb-sec-tick-label">I have read and understood the active campaign(s)</span>
+    </label>
+  </div>
+
+  <!-- GENERAL SECTION -->
+  <div class="nb-section nb-s-general" id="nb-sec-general">
+    <div class="nb-cat-hdr">
+      <div class="nb-cat-pip"></div>
+      <div class="nb-cat-label">General</div>
+      <span class="nb-cat-count" id="nb-cnt-general">0</span>
+    </div>
+    <div id="nb-cards-general"></div>
+    <label class="nb-sec-tick" id="nb-tick-general" style="display:none">
+      <input type="checkbox" id="nb-cb-general" onchange="nbOnTick('general')">
+      <span class="nb-sec-tick-label">I have read the general notices</span>
+    </label>
+  </div>
+
+  <!-- SIGN SECTION -->
+  <div class="nb-sign-section" id="nbSignSection" style="display:none">
+    <div class="nb-sign-hdr">
+      <span class="nb-sign-hdr-icon">✍️</span>
+      <div>
+        <div class="nb-sign-hdr-text">Sign to Acknowledge</div>
+        <div class="nb-sign-hdr-sub">Your signature confirms you have read all notices above</div>
+      </div>
+    </div>
+    <div class="nb-sign-body">
+      <div class="nb-val-msg" id="nbValMsg"></div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Your Full Name</label>
+        <input type="text" id="nbAckName" placeholder="First and last name" style="margin-bottom:0;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:6px;">Signature</label>
+        <div class="nb-sig-wrap" id="nbSigWrap">
+          <canvas id="nbSigCanvas"></canvas>
+          <div class="nb-sig-hint" id="nbSigHint">
+            <span class="nb-sig-hint-icon">✍️</span>
+            <span class="nb-sig-hint-text">Sign here with your finger or mouse</span>
+          </div>
+          <button class="nb-sig-clear" onclick="nbClearSig()">Clear</button>
+        </div>
+      </div>
+      <button class="btn btn-success mb-0" onclick="nbSubmitAck()">✅ &nbsp;Confirm &amp; Submit Acknowledgement</button>
+    </div>
+  </div>
+
+  <!-- TODAY'S ACKS -->
+  <div class="nb-acks-today" id="nbAcksToday" style="display:none;margin-top:18px;">
+    <div class="nb-acks-hdr">Signed today</div>
+    <div class="nb-chip-row" id="nbAckChips"></div>
+  </div>
+  <div style="height:24px;"></div>
+</div>
+
+<!-- ==================== NOTICE BOARD (ADMIN) ==================== -->
+<div class="page" id="pg-noticeboard-admin">
+  <div class="card card-red" style="padding:12px 16px;margin-bottom:14px;background:#fff5f5;border:1px solid #fed7d7;">
+    <div style="font-size:12px;color:#c53030;font-weight:700;">📢 NOTICE BOARD MANAGEMENT</div>
+    <div style="font-size:13px;color:#742a2a;margin-top:3px;">Post notices for staff. Notices stay on the board until you delete them.</div>
+  </div>
+
+  <!-- Post a notice -->
+  <div class="card" style="margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Post a Notice</div>
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Category</label>
+    <select id="nbFCat" style="margin-bottom:12px;">
+      <option value="blacklisted">Account Customers — Suspended</option>
+      <option value="campaign">Campaign Currently Running</option>
+      <option value="general">General</option>
+    </select>
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Title / Account Name</label>
+    <input type="text" id="nbFTitle" placeholder="e.g. Mr. K. Petersen — Account #A-2241">
+    <label style="font-size:12px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">Details</label>
+    <textarea id="nbFBody" placeholder="Reason for suspension, campaign details, or general notice…" style="border:1.5px solid #e2e8f0;border-radius:11px;padding:12px 14px;font-size:14px;width:100%;min-height:90px;resize:vertical;font-family:inherit;outline:none;background:#fff;color:#1a202c;transition:border-color .2s;" onfocus="this.style.borderColor='#005EB8'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+    <button class="btn btn-primary mb-0 mt-12" onclick="nbPostNotice()">📌 &nbsp;Post Notice</button>
+  </div>
+
+  <!-- Active notices -->
+  <div class="sec-header">Active Notices <span style="font-weight:400;color:#a0aec0;font-size:11px;">(stay until deleted)</span></div>
+  <div class="card" id="nbAdminList" style="padding:8px 16px;"></div>
+
+  <!-- Acks panel -->
+  <div id="nbAcksPanel" style="display:none;">
+    <div class="sec-header" id="nbAcksTitle">Acknowledgements</div>
+    <div class="card" id="nbAcksList" style="padding:8px 16px;"></div>
+  </div>
+  <div style="height:24px;"></div>
+</div>
+
+<script>
+'use strict';
+
+// ================================================================
+// FIREBASE CONFIG — paste your config here
+// ================================================================
+const firebaseConfig = {
+  apiKey:            "AIzaSyBxuTwDsXSB1tCFLqRoiZiLw-W_q8yT9XA",
+  authDomain:        "bp-wetlands-staff-tracker.firebaseapp.com",
+  databaseURL:       "https://bp-wetlands-staff-tracker-default-rtdb.firebaseio.com",
+  projectId:         "bp-wetlands-staff-tracker",
+  storageBucket:     "bp-wetlands-staff-tracker.firebasestorage.app",
+  messagingSenderId: "937295128264",
+  appId:             "1:937295128264:web:c8fa1c3d077530e42d67fd"
+};
+
+const CONFIG_SET = !firebaseConfig.apiKey.includes('PASTE');
+const ROOT = 'bpw';
+let db = null;
+
+// ================================================================
+// CONSTANTS
+// ================================================================
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const COLORS = ['#005EB8','#38a169','#d69e2e','#e53e3e','#805ad5','#dd6b20','#319795','#c05621'];
+const TASK_ICONS = [
+  '⛽','🧹','🚽','🗑️','🧴','🧽','🪣','🚿',
+  '🔧','🔨','🪛','🔌','💡','🧯','🔑','🪞',
+  '🖥️','📋','📦','📝','📱','⏰','🌙','☀️',
+  '🏪','🚗','🪟','🪴','🏠','🧰','💧','🌿',
+  '🍽️','🥤','🧺','🛒','🚪','🏋️','⚡','🎯',
+];
+
+// ================================================================
+// LOCAL CACHE (mirrors Firebase data)
+// ================================================================
+let cache = {
+  staff:       {},   // { id: {id, name} }
+  tasks:       {},   // { id: {id, name, time, icon} }
+  schedule:    {},   // { Monday: {day: id|null, night: id|null} }
+  completions: {},   // { 'YYYY-MM-DD': { 'taskId__staffId': comp } }
+  photos:      {},   // { 'YYYY-MM-DD': { 'taskId__staffId': { before: dataUrl, after: dataUrl } } }
+  settings:    { pin: '1234', bizname: 'BP Wetlands · Lansdowne' }
+};
+
+// ================================================================
+// APP STATE
+// ================================================================
+let currentStaff  = null;
+let currentTaskId = null;
+let reportDate    = new Date();
+let scheduleEdits = {};
+let pageStack     = ['pg-home'];
+let editingTaskId = null;
+let newTaskIcon   = '📋';
+let editTaskIcon  = '📋';
+let appReady      = false;
+
+// ================================================================
+// DEFAULTS
+// ================================================================
+function defaultStaff() {
+  return {
+    1: {id:1, name:'Fatima'},
+    2: {id:2, name:'Ahmed'},
+    3: {id:3, name:'Zainab'},
+    4: {id:4, name:'Yunus'}
+  };
+}
+function defaultTasks() {
+  return {
+    t1:  {id:'t1',  name:'Forecourt Cleaning',   time:'06:00', icon:'⛽'},
+    t2:  {id:'t2',  name:'Shop Floor Sweep',      time:'07:00', icon:'🧹'},
+    t3:  {id:'t3',  name:'Toilet Cleaning',       time:'07:30', icon:'🚽'},
+    t4:  {id:'t4',  name:'Car Wash Area',         time:'09:00', icon:'🚿'},
+    t5:  {id:'t5',  name:'Bins Emptied',          time:'10:00', icon:'🗑️'},
+    t6:  {id:'t6',  name:'Office Cleaning',       time:'14:00', icon:'🖥️'},
+    t7:  {id:'t7',  name:'Pump Area Wipe-down',   time:'16:00', icon:'🔧'},
+    t8:  {id:'t8',  name:'End-of-Day Sweep',      time:'17:00', icon:'🌅'},
+    t9:  {id:'t9',  name:'Night Forecourt Check', time:'18:00', icon:'🌙'},
+    t10: {id:'t10', name:'Midnight Sweep',        time:'22:00', icon:'🧹'},
+  };
+}
+function defaultSchedule() {
+  const s = {}; DAYS.forEach(d => { s[d] = {morning:null,midday:null,afternoon:null,night:null}; }); return s;
+}
+
+// ================================================================
+// CACHE ACCESSORS
+// ================================================================
+function getStaff()    { return Object.values(cache.staff  || {}).filter(Boolean); }
+function getTasks()    { return Object.values(cache.tasks  || {}).filter(Boolean); }
+function getSchedule() { return cache.schedule || defaultSchedule(); }
+function getPin()      { return (cache.settings || {}).pin      || '1234'; }
+function getBizName()  { return (cache.settings || {}).bizname  || 'BP Wetlands · Lansdowne'; }
+
+function getCompletionsForDate(date) {
+  return Object.values((cache.completions[date]) || {}).filter(Boolean);
+}
+function getCompletions() { return getCompletionsForDate(todayStr()); }
+
+// ================================================================
+// DATE HELPERS
+// ================================================================
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayStr()     { return localDateStr(new Date()); }
+function todayDayName() { const d = new Date().getDay(); return DAYS[d===0?6:d-1]; }
+
+// ================================================================
+// PHOTO HELPERS (Firebase — cross-device)
+// ================================================================
+function photoKey(date, taskId, staffId, type) {
+  return `bpw_ph_${date}_${taskId}_${staffId}_${type}`;
+}
+function savePhotoLocal(date, taskId, staffId, type, dataUrl) {
+  try { localStorage.setItem(photoKey(date, taskId, staffId, type), dataUrl); } catch(e) {}
+}
+function getPhoto(date, taskId, staffId, type) {
+  // Check Firebase memory cache first (available on all devices)
+  const key = `${taskId}__${staffId}`;
+  if (cache.photos[date] && cache.photos[date][key] && cache.photos[date][key][type]) {
+    return cache.photos[date][key][type];
+  }
+  // Fallback to localStorage (this device only)
+  return localStorage.getItem(photoKey(date, taskId, staffId, type));
+}
+async function loadPhotosForDate(dateStr) {
+  if (!db) return;
+  if (cache.photos[dateStr] && cache.photos[dateStr].__loaded) return;
+  try {
+    const snap = await db.ref(`${ROOT}/photos/${dateStr}`).once('value');
+    if (!cache.photos[dateStr]) cache.photos[dateStr] = {};
+    const data = snap.val() || {};
+    Object.assign(cache.photos[dateStr], data);
+    cache.photos[dateStr].__loaded = true;
+  } catch(e) {}
+}
+async function loadPhotosForTask(dateStr, key) {
+  if (!db) return;
+  if (cache.photos[dateStr] && cache.photos[dateStr][key] && cache.photos[dateStr][key].__loaded) return;
+  try {
+    const snap = await db.ref(`${ROOT}/photos/${dateStr}/${key}`).once('value');
+    if (!cache.photos[dateStr]) cache.photos[dateStr] = {};
+    const data = snap.val() || {};
+    cache.photos[dateStr][key] = { ...data, __loaded: true };
+  } catch(e) {}
+}
+
+// ================================================================
+// FIREBASE INIT & DATA LOAD
+// ================================================================
+async function initApp() {
+  if (!CONFIG_SET) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('setupScreen').style.display   = 'block';
+    return;
+  }
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  } catch(e) {
+    showError('Firebase init failed. Check your config.'); return;
+  }
+
+  setLoadMsg('Loading staff & tasks…');
+
+  try {
+    // Load all static data in parallel
+    const [staffSnap, tasksSnap, schedSnap, settingsSnap] = await Promise.all([
+      db.ref(`${ROOT}/staff`).once('value'),
+      db.ref(`${ROOT}/tasks`).once('value'),
+      db.ref(`${ROOT}/schedule`).once('value'),
+      db.ref(`${ROOT}/settings`).once('value'),
+    ]);
+
+    // Use Firebase data or write defaults
+    cache.staff    = staffSnap.val()    || defaultStaff();
+    cache.tasks    = tasksSnap.val()    || defaultTasks();
+    cache.schedule = schedSnap.val()    || defaultSchedule();
+    const s = settingsSnap.val();
+    if (s) cache.settings = { ...cache.settings, ...s };
+
+    if (!staffSnap.val())    await db.ref(`${ROOT}/staff`).set(cache.staff);
+    if (!tasksSnap.val())    await db.ref(`${ROOT}/tasks`).set(cache.tasks);
+    if (!schedSnap.val())    await db.ref(`${ROOT}/schedule`).set(cache.schedule);
+    if (!settingsSnap.val()) await db.ref(`${ROOT}/settings`).set(cache.settings);
+
+    setLoadMsg('Connecting live updates…');
+
+    // Real-time listener for today's completions
+    setupCompletionsListener(todayStr());
+    // Also listen for yesterday (for night shift spanning midnight)
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    setupCompletionsListener(localDateStr(yesterday));
+
+    // Listen for report date changes
+    // (reportDate listener set up when report page opens)
+
+    appReady = true;
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('appHeader').style.display     = 'flex';
+    document.getElementById('syncDot').style.display       = 'block';
+    nav('pg-home', false);
+
+  } catch(err) {
+    console.error(err);
+    showError('Could not connect to Firebase. Check internet & config.<br><small style="opacity:.7;font-size:12px;">' + (err && err.message ? err.message : String(err)) + '</small>');
+  }
+}
+
+function setLoadMsg(msg) {
+  const el = document.getElementById('loadMsg');
+  if (el) el.textContent = msg;
+}
+
+function showError(msg) {
+  document.getElementById('loadingScreen').innerHTML = `
+    <div style="text-align:center;padding:24px;">
+      <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;">${msg}</div>
+      <button onclick="location.reload()" style="margin-top:16px;padding:12px 28px;border-radius:12px;border:none;background:#FFE000;color:#005EB8;font-weight:700;font-size:15px;cursor:pointer;">Retry</button>
+    </div>`;
+}
+
+let compListeners = {};
+function setupCompletionsListener(date) {
+  if (compListeners[date]) return; // already listening
+  const ref = db.ref(`${ROOT}/completions/${date}`);
+  ref.on('value', snap => {
+    cache.completions[date] = snap.val() || {};
+    if (!appReady) return;
+    // Re-render the active page if it shows completions
+    const page = pageStack[pageStack.length-1];
+    if (page === 'pg-home')  renderHome();
+    if (page === 'pg-my-tasks') renderMyTasks();
+    if (page === 'pg-admin') renderAdminDashboard();
+  });
+  compListeners[date] = ref;
+}
+
+function ensureCompListenerForDate(date) {
+  if (!compListeners[date]) setupCompletionsListener(date);
+}
+
+// ================================================================
+// FIREBASE WRITE HELPERS
+// ================================================================
+function setSyncing(on) {
+  const dot = document.getElementById('syncDot');
+  if (dot) dot.className = on ? 'syncing' : '';
+}
+
+async function fbSet(path, data) {
+  setSyncing(true);
+  try { await db.ref(`${ROOT}/${path}`).set(data); }
+  finally { setSyncing(false); }
+}
+async function fbUpdate(path, data) {
+  setSyncing(true);
+  try { await db.ref(`${ROOT}/${path}`).update(data); }
+  finally { setSyncing(false); }
+}
+async function fbRemove(path) {
+  setSyncing(true);
+  try { await db.ref(`${ROOT}/${path}`).remove(); }
+  finally { setSyncing(false); }
+}
+
+// ================================================================
+// SHIFT HELPERS
+// ================================================================
+function currentShift() {
+  const h=new Date().getHours();
+  if(h>=6  && h<11) return 'morning';
+  if(h>=11 && h<16) return 'midday';
+  if(h>=16 && h<18) return 'afternoon';
+  return 'night';
+}
+function getTaskShift(task) {
+  if(!task||!task.time) return 'morning';
+  const h=parseInt(task.time.split(':')[0],10);
+  if(h>=6  && h<11) return 'morning';
+  if(h>=11 && h<16) return 'midday';
+  if(h>=16 && h<18) return 'afternoon';
+  return 'night';
+}
+const SHIFT_META = {
+  morning:   { icon:'🌄', label:'Morning Shift',   time:'06:00 – 11:00', cls:'morning',   badge:'badge-yellow' },
+  midday:    { icon:'☀️',  label:'Midday Shift',    time:'11:00 – 16:00', cls:'midday',    badge:'badge-green'  },
+  afternoon: { icon:'🌇', label:'Afternoon Shift',  time:'16:00 – 18:00', cls:'afternoon', badge:'badge-orange' },
+  night:     { icon:'🌙', label:'Night Shift',      time:'18:00 – 06:00', cls:'night',     badge:'badge-purple' },
+};
+function shiftLabel(shift) { return (SHIFT_META[shift]||SHIFT_META.morning).icon+' '+(SHIFT_META[shift]||SHIFT_META.morning).label; }
+function shiftTime(shift)  { return (SHIFT_META[shift]||SHIFT_META.morning).time; }
+function sortByTime(tasks) { return [...tasks].sort((a,b)=>(a.time||'').localeCompare(b.time||'')); }
+
+function makeShiftBanner(shift, assignedName, isCurrentUser) {
+  const m=SHIFT_META[shift]||SHIFT_META.morning;
+  const assignLine=assignedName
+    ?`<div style="font-size:13px;margin-top:4px;">👤 <strong>${assignedName}</strong> is on shift ${isCurrentUser?'<span class="badge badge-green" style="font-size:11px;padding:2px 8px;">That\'s you!</span>':''}</div>`
+    :`<div style="font-size:13px;margin-top:4px;opacity:.7;">No one assigned — see Admin → Schedule</div>`;
+  return `<div class="shift-banner ${m.cls}"><div class="shift-icon">${m.icon}</div><div><div class="shift-name">${m.label}</div><div class="shift-time">${m.time}</div>${assignLine}</div></div>`;
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function nav(pageId, push=true) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  if (push && pageStack[pageStack.length-1]!==pageId) pageStack.push(pageId);
+  document.getElementById('backBtn').style.display = pageId==='pg-home'?'none':'';
+
+  const titles = {
+    'pg-home':         ['Staff Task Tracker', getBizName()],
+    'pg-staff-login':  ['Select Your Name',   'Who is working today?'],
+    'pg-my-tasks':     [currentStaff?.name||'My Tasks','Current shift tasks'],
+    'pg-task-detail':  ['Task Detail',        'Before & After photos'],
+    'pg-admin-login':  ['Manager Login',      'Admin area'],
+    'pg-admin':        ['Admin Dashboard',    'Manager view'],
+    'pg-report':       ['Reports',            'Task completion records'],
+    'pg-schedule':     ['Shift Schedule',     'Assign staff to shifts'],
+    'pg-manage-staff': ['Manage Staff',       'Add or remove staff'],
+    'pg-manage-tasks': ['Manage Tasks',       'Add, edit or remove tasks'],
+    'pg-settings':            ['Settings',        'PIN & preferences'],
+    'pg-noticeboard':         ['Notice Board',    'Read and acknowledge daily notices'],
+    'pg-noticeboard-admin':   ['Manage Notices',  'Post, delete and review acknowledgements'],
+  };
+  const t=titles[pageId]||['',getBizName()];
+  document.getElementById('headerTitle').textContent=t[0];
+  document.getElementById('headerSub').textContent  =t[1];
+  window.scrollTo(0,0);
+
+  const renders = {
+    'pg-home':               renderHome,
+    'pg-staff-login':        renderStaffLogin,
+    'pg-my-tasks':           renderMyTasks,
+    'pg-task-detail':        renderTaskDetail,
+    'pg-admin':              renderAdminDashboard,
+    'pg-report':             renderReport,
+    'pg-schedule':           renderSchedule,
+    'pg-manage-staff':       renderManageStaff,
+    'pg-manage-tasks':       renderManageTasks,
+    'pg-settings':           renderSettings,
+    'pg-noticeboard':        renderNoticeBoard,
+    'pg-noticeboard-admin':  renderNoticeBoardAdmin,
+  };
+  if (renders[pageId]) renders[pageId]();
+}
+
+function goBack() {
+  if (pageStack.length>1) { pageStack.pop(); nav(pageStack[pageStack.length-1], false); }
+}
+
+// ================================================================
+// HOME
+// ================================================================
+function renderHome() {
+  document.getElementById('homeDateDisplay').textContent = new Date().toLocaleDateString('en-ZA',
+    {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('homeBizName').textContent = getBizName().split(' · ')[0];
+
+  const shift=currentShift(), schedule=getSchedule(), today=todayDayName();
+  const staffId=(schedule[today]||{})[shift];
+  const staff=staffId?getStaff().find(s=>s.id==staffId):null;
+  document.getElementById('homeShiftBanner').innerHTML=makeShiftBanner(shift,staff?.name,false);
+
+  // Live progress card
+  const comps    = getCompletions();
+  const allTasks = sortByTime(getTasks());
+  const done = comps.filter(c=>c.hasAfter).length;
+  const part = comps.filter(c=>c.hasBefore&&!c.hasAfter).length;
+  const el   = document.getElementById('homeLiveProgress');
+  if (!allTasks.length) { el.innerHTML=''; return; }
+
+  const pct = Math.round(done/allTasks.length*100);
+  const statusBadge = done===allTasks.length
+    ?'<span class="badge badge-green">✅ All Done!</span>'
+    :part>0||done>0?'<span class="badge badge-yellow">⏳ In Progress</span>'
+    :'<span class="badge badge-gray">Not started</span>';
+
+  el.innerHTML=`<div class="card" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-weight:700;font-size:15px;">📊 Today's Progress</div>${statusBadge}
+    </div>
+    <div class="progress-wrap" style="margin-bottom:8px;"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:13px;color:#4a5568;margin-bottom:10px;">
+      <strong>${done}</strong> of <strong>${allTasks.length}</strong> tasks complete${part>0?` · <strong>${part}</strong> in progress`:''}
+    </div>
+    <div style="border-top:1px solid #f0f4f8;padding-top:8px;">
+      ${allTasks.map(task=>{
+        const c=comps.find(x=>x.taskId===task.id);
+        const isDone=!!(c&&c.hasAfter), isPart=!!(c&&c.hasBefore&&!c.hasAfter);
+        const sB=getTaskShift(task)==='day'?'<span style="font-size:10px;color:#718096;">🌅</span>':'<span style="font-size:10px;color:#718096;">🌙</span>';
+        const who=c?`<span style="font-size:11px;color:#718096;">${c.staffName||''}</span>`:'';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f7fafc;">
+          <span style="font-size:18px;width:24px;text-align:center;">${task.icon}</span>
+          <span style="flex:1;font-size:13px;font-weight:500;">${task.name}</span>
+          ${who}${sB}
+          <span style="font-size:13px;">${isDone?'✅':isPart?'⏳':'○'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ================================================================
+// STAFF LOGIN
+// ================================================================
+function renderStaffLogin() {
+  const shift=currentShift(), schedule=getSchedule(), today=todayDayName();
+  const shiftStaffId=(schedule[today]||{})[shift];
+  const comps=getCompletions();
+  const shiftTasks=sortByTime(getTasks().filter(t=>getTaskShift(t)===shift));
+  document.getElementById('loginShiftBanner').innerHTML=makeShiftBanner(shift,null,false);
+  document.getElementById('staffLoginList').innerHTML=getStaff().map((s,i)=>{
+    const isOnShift=shiftStaffId==s.id;
+    const done=comps.filter(c=>c.staffId==s.id&&c.hasAfter&&c.shift===shift).length;
+    const total=shiftTasks.length;
+    const sub=isOnShift?`✅ Assigned to ${shiftLabel(shift)} · ${done}/${total} done`:'Not assigned to this shift';
+    return `<button class="staff-btn ${isOnShift?'on-shift':''}" onclick="loginAsStaff(${s.id})">
+      <div class="avatar" style="background:${COLORS[i%COLORS.length]}">${s.name[0]}</div>
+      <div style="flex:1"><div style="font-weight:600;font-size:16px;">${s.name}</div>
+      <div style="font-size:13px;color:${isOnShift?'#276749':'#718096'};">${sub}</div></div>
+      <span style="font-size:22px;color:#cbd5e0;">›</span>
+    </button>`;
+  }).join('');
+}
+
+function loginAsStaff(id) {
+  currentStaff=getStaff().find(s=>s.id==id);
+  if (currentStaff) nav('pg-my-tasks');
+}
+
+// ================================================================
+// MY TASKS
+// ================================================================
+function renderMyTasks() {
+  if (!currentStaff) return;
+  const shift=currentShift(), schedule=getSchedule(), today=todayDayName();
+  const shiftStaffId=(schedule[today]||{})[shift];
+  const isAssigned=shiftStaffId==currentStaff.id;
+  const assignedStaff=shiftStaffId?getStaff().find(s=>s.id==shiftStaffId):null;
+  document.getElementById('myShiftBanner').innerHTML=makeShiftBanner(shift,assignedStaff?.name,isAssigned);
+
+  const tasks=sortByTime(getTasks().filter(t=>getTaskShift(t)===shift));
+  const comps=getCompletions();
+  document.getElementById('myTasksDate').textContent=new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long'});
+
+  const empty=document.getElementById('myTasksEmpty');
+  const prog =document.getElementById('myTasksProgress');
+  const list =document.getElementById('myTasksList');
+
+  if (!tasks.length) { empty.style.display=''; prog.style.display='none'; list.innerHTML=''; return; }
+  empty.style.display='none'; prog.style.display='';
+
+  const compFor=t=>comps.find(x=>x.taskId===t.id&&x.staffId==currentStaff.id);
+  const done=tasks.filter(t=>{const c=compFor(t);return c&&c.hasAfter;}).length;
+  const part=tasks.filter(t=>{const c=compFor(t);return c&&c.hasBefore&&!c.hasAfter;}).length;
+  const total=tasks.length;
+
+  document.getElementById('myTasksLabel').textContent=`${done} / ${total} Tasks Complete`;
+  document.getElementById('myTasksBar').style.width=`${Math.round(done/total*100)}%`;
+  document.getElementById('myTasksBadge').innerHTML=done===total
+    ?'<span class="badge badge-green">✅ All Done!</span>'
+    :(part>0||done>0)?'<span class="badge badge-yellow">⏳ In Progress</span>'
+    :'<span class="badge badge-gray">Not started</span>';
+
+  list.innerHTML=tasks.map(task=>{
+    const c=compFor(task);
+    const isDone=!!(c&&c.hasAfter), isPart=!!(c&&c.hasBefore&&!c.hasAfter);
+    return `<div class="task-item ${isDone?'done':isPart?'part':''}" onclick="openTask('${task.id}')">
+      <div style="font-size:26px;width:36px;text-align:center;flex-shrink:0;">${task.icon}</div>
+      <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:15px;">${task.name}</div>
+      <div style="font-size:13px;color:#718096;">⏰ ${task.time}</div></div>
+      ${isDone?'<span class="badge badge-green">✅ Done</span>':isPart?'<span class="badge badge-yellow">⏳ Partial</span>':'<span class="badge badge-gray">Pending</span>'}
+      <span style="font-size:20px;color:#cbd5e0;flex-shrink:0;">›</span>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+// TASK DETAIL
+// ================================================================
+function openTask(id) { currentTaskId=id; nav('pg-task-detail'); }
+
+function getComp(taskId) {
+  if (!currentStaff) return null;
+  const date=todayStr(), key=`${taskId}__${currentStaff.id}`;
+  const fbComp=(cache.completions[date]||{})[key]||null;
+  if (!fbComp) return null;
+  // Merge with local photos
+  return {
+    ...fbComp,
+    beforePhoto: getPhoto(date, taskId, currentStaff.id, 'before'),
+    afterPhoto:  getPhoto(date, taskId, currentStaff.id, 'after'),
+  };
+}
+
+function renderTaskDetail() {
+  if (!currentTaskId||!currentStaff) return;
+  const task=getTasks().find(t=>t.id===currentTaskId); if(!task) return;
+  const comp=getComp(currentTaskId);
+  const hasBefore=!!(comp&&comp.hasBefore);
+  const hasAfter =!!(comp&&comp.hasAfter);
+  const beforePhoto=comp?.beforePhoto||null;
+  const afterPhoto =comp?.afterPhoto||null;
+  const isComplete=hasBefore&&hasAfter;
+  document.getElementById('headerTitle').textContent=task.name;
+  document.getElementById('headerSub').textContent=`${task.icon} Proof of Work`;
+
+  document.getElementById('taskDetailBody').innerHTML=`
+    <div class="card ${isComplete?'card-green':''}" style="text-align:center;padding:20px 18px;">
+      <div style="font-size:48px;margin-bottom:6px;">${task.icon}</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px;">${task.name}</div>
+      <div style="font-size:13px;color:#718096;">⏰ ${task.time} &nbsp;·&nbsp; 👤 ${currentStaff.name}</div>
+      ${isComplete?`<div style="margin-top:12px;"><span class="badge badge-green" style="font-size:14px;padding:6px 18px;">✅ Completed · ${comp.completedAt}</span></div>`:''}
+    </div>
+    <div class="sec-header">Step 1 — Take a BEFORE photo</div>
+    <div class="card" style="padding:10px;">
+      <div class="photo-step ${hasBefore?'captured':''}" id="beforeBox">
+        ${beforePhoto
+          ?`<img src="${beforePhoto}" alt="Before"><div class="photo-ok">✓ Before photo saved</div>`
+          :hasBefore
+            ?`<div style="font-size:38px;">📷</div><div style="font-weight:700;margin-top:8px;">Before photo on server ✓</div><div style="font-size:13px;color:#718096;margin-top:4px;">(Photo stored on your device)</div>`
+            :`<div style="font-size:38px;">📷</div>
+              <div style="font-weight:700;margin-top:8px;font-size:15px;">Tap to take BEFORE photo</div>
+              <div style="font-size:14px;color:#718096;margin-top:4px;">Show the area <u>before</u> you start</div>
+              <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('before',this)">`}
+      </div>
+      ${hasBefore&&!isComplete?`<button class="btn btn-gray btn-sm w-full mt-8" onclick="retakePhoto('before')">🔄 Retake Before Photo</button>`:''}
+    </div>
+    <div class="sec-header">Step 2 — Complete the Task</div>
+    <div class="card ${hasBefore?'card-green':'card-red'}" style="padding:14px 16px;">
+      ${hasBefore?'<p style="font-weight:600;color:#276749;">✅ Before photo recorded. Go complete the task, then take the after photo.</p>'
+                 :'<p style="color:#c53030;font-weight:600;">⚠️ Take the before photo first.</p>'}
+    </div>
+    <div class="sec-header">Step 3 — Take an AFTER photo</div>
+    <div class="card" style="padding:10px;">
+      <div class="photo-step ${hasAfter?'captured':''} ${!hasBefore?'disabled':''}" id="afterBox">
+        ${afterPhoto
+          ?`<img src="${afterPhoto}" alt="After"><div class="photo-ok">✓ After photo saved</div>`
+          :hasAfter
+            ?`<div style="font-size:38px;">📷</div><div style="font-weight:700;margin-top:8px;">After photo on server ✓</div>`
+            :`<div style="font-size:38px;">📷</div>
+              <div style="font-weight:700;margin-top:8px;font-size:15px;">Tap to take AFTER photo</div>
+              <div style="font-size:14px;color:#718096;margin-top:4px;">Show the completed, clean area</div>
+              ${hasBefore?'<input type="file" accept="image/*" capture="environment" onchange="handlePhoto(\'after\',this)">':''}`}
+      </div>
+      ${hasAfter?`<button class="btn btn-gray btn-sm w-full mt-8" onclick="retakePhoto('after')">🔄 Retake After Photo</button>`:''}
+    </div>
+    ${isComplete?`<button class="btn btn-success" onclick="goBack()">← Back to My Tasks</button>`:''}
+    <div style="height:20px;"></div>`;
+}
+
+function handlePhoto(type, input) {
+  if (!input.files||!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const MAX=320; let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      persistPhoto(type, canvas.toDataURL('image/jpeg',.45));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function persistPhoto(type, dataUrl) {
+  if (!currentStaff||!currentTaskId) return;
+  const task=getTasks().find(t=>t.id===currentTaskId);
+  const date=todayStr();
+  const key =`${currentTaskId}__${currentStaff.id}`;
+
+  // Save photo locally as backup
+  savePhotoLocal(date, currentTaskId, currentStaff.id, type, dataUrl);
+
+  // Save photo to Firebase memory cache (cross-device)
+  if (!cache.photos[date]) cache.photos[date] = {};
+  if (!cache.photos[date][key]) cache.photos[date][key] = {};
+  cache.photos[date][key][type] = dataUrl;
+
+  // Build/update completion record for Firebase (status only, no photo data)
+  if (!cache.completions[date]) cache.completions[date]={};
+  let comp=cache.completions[date][key]||{
+    id:       Date.now(),
+    taskId:   currentTaskId,
+    taskName: task?.name||'',
+    taskIcon: task?.icon||'📋',
+    staffId:  currentStaff.id,
+    staffName:currentStaff.name,
+    date:     date,
+    shift:    currentShift(),
+    hasBefore:false,
+    hasAfter: false,
+    completedAt:null
+  };
+
+  if (type==='before') comp.hasBefore=true;
+  if (type==='after')  {
+    comp.hasAfter=true;
+    comp.completedAt=new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+  }
+  cache.completions[date][key]=comp;
+
+  try {
+    await Promise.all([
+      fbSet(`completions/${date}/${key}`, comp),
+      db.ref(`${ROOT}/photos/${date}/${key}/${type}`).set(dataUrl)
+    ]);
+    showToast(type==='before'?'📸 Before photo saved!':'✅ Task completed!');
+  } catch(e) {
+    showToast('⚠️ Saved locally, sync failed');
+  }
+  renderTaskDetail();
+}
+
+async function retakePhoto(type) {
+  if (!currentStaff||!currentTaskId) return;
+  const date=todayStr(), key=`${currentTaskId}__${currentStaff.id}`;
+  deletePhoto(date, currentTaskId, currentStaff.id, type);
+  if (cache.completions[date]&&cache.completions[date][key]) {
+    if (type==='before') { cache.completions[date][key].hasBefore=false; cache.completions[date][key].hasAfter=false; cache.completions[date][key].completedAt=null; deletePhoto(date, currentTaskId, currentStaff.id, 'after'); }
+    if (type==='after')  { cache.completions[date][key].hasAfter=false; cache.completions[date][key].completedAt=null; }
+    await fbSet(`completions/${date}/${key}`, cache.completions[date][key]);
+  }
+  renderTaskDetail();
+}
+
+// ================================================================
+// ADMIN LOGIN
+// ================================================================
+function promptAdminLogin() { nav('pg-admin-login'); setTimeout(()=>document.getElementById('adminPinInput').focus(),350); }
+function checkPin() {
+  const v=document.getElementById('adminPinInput').value;
+  if (v===getPin()) { document.getElementById('adminPinInput').value=''; nav('pg-admin'); }
+  else { showToast('❌ Incorrect PIN'); document.getElementById('adminPinInput').value=''; }
+}
+
+// ================================================================
+// ADMIN DASHBOARD
+// ================================================================
+function renderAdminDashboard() {
+  const schedule=getSchedule(), staff=getStaff(), today=todayDayName();
+  const entry=schedule[today]||{morning:null,midday:null,afternoon:null,night:null};
+  const shiftCols=['morning','midday','afternoon','night'].map((sh,i)=>{
+    const m=SHIFT_META[sh], s=entry[sh]?staff.find(x=>x.id==entry[sh]):null;
+    const border=i<3?'border-right:1px solid #f0f4f8;':'';
+    return `<div style="padding:12px 10px;${border}text-align:center;">
+      <div style="font-size:20px;margin-bottom:4px;">${m.icon}</div>
+      <div style="font-weight:700;font-size:12px;">${m.label.replace(' Shift','')}</div>
+      <div style="font-size:10px;color:#a0aec0;margin-bottom:4px;">${m.time}</div>
+      ${s?`<span class="badge badge-green" style="font-size:11px;">${s.name}</span>`:'<span class="badge badge-red" style="font-size:10px;">⚠️ None</span>'}
+    </div>`;
+  }).join('');
+  document.getElementById('adminTodayShifts').innerHTML=`<div class="card" style="padding:0;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">${shiftCols}</div>
+  </div>`;
+
+  const comps=getCompletions(), todays=comps, done=todays.filter(c=>c.hasAfter).length;
+  const todayEl=document.getElementById('adminTodaySummary');
+  if (!todays.length) {
+    todayEl.innerHTML=`<div class="card txt-center txt-gray" style="padding:24px;"><div style="font-size:36px;margin-bottom:8px;">📋</div><div>No records yet today.</div></div>`;
+  } else {
+    todayEl.innerHTML=`<div class="card">
+      <div class="flex-center gap-8" style="justify-content:space-between;margin-bottom:10px;">
+        <span class="txt-bold">Today · ${todayStr()}</span>
+        <span class="badge ${done===todays.length?'badge-green':'badge-yellow'}">${done}/${todays.length} done</span>
+      </div>
+      ${todays.map(c=>`<div class="manage-row">
+        <span>${c.hasAfter?'✅':c.hasBefore?'⏳':'○'}</span>
+        <span style="flex:1;font-size:14px;font-weight:500;">${c.taskIcon||''} ${c.taskName}</span>
+        <span class="badge ${(SHIFT_META[c.shift]||SHIFT_META.morning).badge}" style="font-size:11px;">${(SHIFT_META[c.shift]||SHIFT_META.morning).icon}</span>
+        <span class="txt-sm txt-gray">${c.staffName}${c.completedAt?' · '+c.completedAt:''}</span>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Week summary
+  const weekEl=document.getElementById('adminWeekSummary');
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(localDateStr(d));}
+  weekEl.innerHTML='<div class="card">'+days.map(date=>{
+    ensureCompListenerForDate(date);
+    const dc=getCompletionsForDate(date);
+    const dd=dc.filter(c=>c.hasAfter).length;
+    const dn=new Date(date+'T12:00:00').toLocaleDateString('en-ZA',{weekday:'short',day:'numeric'});
+    return `<div class="manage-row">
+      <span style="width:70px;font-size:13px;font-weight:600;color:#4a5568;">${dn}</span>
+      <div class="progress-wrap" style="flex:1;height:7px;margin:0;"><div class="progress-fill" style="width:${dc.length?Math.round(dd/dc.length*100):0}%"></div></div>
+      <span class="badge ${dc.length===0?'badge-gray':dd===dc.length?'badge-green':'badge-yellow'}" style="min-width:55px;justify-content:center;">${dc.length===0?'—':`${dd}/${dc.length}`}</span>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ================================================================
+// SCHEDULE
+// ================================================================
+function renderSchedule() {
+  const staff=getStaff(), schedule=getSchedule();
+  scheduleEdits=JSON.parse(JSON.stringify(schedule));
+  DAYS.forEach(d=>{if(!scheduleEdits[d]||Array.isArray(scheduleEdits[d]))scheduleEdits[d]={morning:null,midday:null,afternoon:null,night:null};});
+  const SHIFTS_ORDER=['morning','midday','afternoon','night'];
+  document.getElementById('scheduleBody').innerHTML=DAYS.map(day=>{
+    const entry=scheduleEdits[day]||{morning:null,midday:null,afternoon:null,night:null};
+    const isToday=day===todayDayName();
+    const rows=SHIFTS_ORDER.map((sh,i)=>{
+      const m=SHIFT_META[sh];
+      return `<div class="shift-row" style="padding:12px 16px;${i%2?'background:#fafbfc;':''}">
+        <div class="shift-pill"><span class="s-icon">${m.icon}</span><div><div class="s-label">${m.label}</div><div class="s-time">${m.time}</div></div></div>
+        <select onchange="setShift('${day}','${sh}',this.value)" style="flex:1;">
+          <option value="">— Unassigned —</option>
+          ${staff.map(s=>`<option value="${s.id}" ${entry[sh]==s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
+    return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;${isToday?'border:2px solid #90cdf4;':''}">
+      <div style="background:${isToday?'#ebf8ff':'#f7fafc'};padding:11px 16px;font-weight:800;font-size:14px;color:${isToday?'#2b6cb0':'#2d3748'};border-bottom:1px solid #e2e8f0;">
+        📅 ${day}${isToday?' <span class="badge badge-blue" style="font-size:11px;margin-left:6px;">Today</span>':''}
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+function setShift(day,shift,staffId) {
+  if(!scheduleEdits[day])scheduleEdits[day]={morning:null,midday:null,afternoon:null,night:null};
+  scheduleEdits[day][shift]=staffId?parseInt(staffId):null;
+}
+async function saveSchedule() {
+  cache.schedule=scheduleEdits;
+  await fbSet('schedule', scheduleEdits);
+  showToast('✅ Schedule saved!'); goBack();
+}
+
+// ================================================================
+// MANAGE STAFF
+// ================================================================
+function renderManageStaff() {
+  const staff=getStaff(), el=document.getElementById('staffManageList');
+  if(!staff.length){el.innerHTML='<div class="txt-sm txt-gray txt-center" style="padding:20px;">No staff yet.</div>';return;}
+  el.innerHTML=staff.map((s,i)=>`<div class="manage-item"><div class="manage-row">
+    <div class="avatar" style="background:${COLORS[i%COLORS.length]};width:38px;height:38px;font-size:16px;">${s.name[0]}</div>
+    <span style="flex:1;font-weight:500;">${s.name}</span>
+    <button class="manage-del" onclick="removeStaff(${s.id})">✕</button>
+  </div></div>`).join('');
+}
+async function addStaff() {
+  const name=document.getElementById('newStaffInput').value.trim();
+  if(!name){showToast('Enter a name first');return;}
+  const id=Date.now();
+  cache.staff[id]={id,name};
+  await fbSet('staff', cache.staff);
+  document.getElementById('newStaffInput').value='';
+  renderManageStaff(); showToast('✅ '+name+' added!');
+}
+async function removeStaff(id) {
+  if(!confirm('Remove this staff member?'))return;
+  delete cache.staff[id];
+  await fbSet('staff', cache.staff);
+  renderManageStaff(); showToast('Removed');
+}
+
+// ================================================================
+// MANAGE TASKS
+// ================================================================
+function renderManageTasks() {
+  const tasks=sortByTime(getTasks());
+  const buildList=(list,elId)=>{
+    const el=document.getElementById(elId);
+    if(!list.length){el.innerHTML='<div class="txt-sm txt-gray" style="padding:10px 0;">No tasks yet.</div>';return;}
+    el.innerHTML=list.map(t=>buildTaskRow(t)).join('');
+  };
+  buildList(tasks.filter(t=>getTaskShift(t)==='morning'),   'morningTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='midday'),    'middayTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='afternoon'), 'afternoonTasksList');
+  buildList(tasks.filter(t=>getTaskShift(t)==='night'),     'nightTasksList');
+  buildIconPicker('newIconPicker','newIconPreview',null,icon=>{newTaskIcon=icon;});
+  updateNewShiftPreview();
+}
+
+function buildTaskRow(t) {
+  const isEditing=editingTaskId===t.id;
+  return `<div class="manage-item" id="taskrow-${t.id}">
+    <div class="manage-row">
+      <span style="font-size:22px;width:30px;text-align:center;">${t.icon}</span>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">${t.name}</div><div style="font-size:12px;color:#718096;">⏰ ${t.time}</div></div>
+      <button class="btn-icon" onclick="toggleEditTask('${t.id}')">✏️</button>
+      <button class="manage-del" onclick="removeTask('${t.id}')">✕</button>
+    </div>
+    ${isEditing?buildEditForm(t):''}
+  </div>`;
+}
+
+function buildEditForm(t) {
+  editTaskIcon=t.icon;
+  return `<div class="edit-form" id="editform-${t.id}">
+    <label>Task Name</label><input type="text" id="edit-name-${t.id}" value="${t.name}">
+    <label>Time (determines shift automatically)</label>
+    <input type="text" id="edit-time-${t.id}" value="${t.time}" placeholder="e.g. 07:30" oninput="updateEditShiftPreview('${t.id}')">
+    <div id="edit-shift-preview-${t.id}" style="font-size:13px;color:#718096;margin-bottom:10px;"></div>
+    <label>Icon</label>
+    <div style="font-size:28px;text-align:center;margin-bottom:4px;" id="edit-iconpreview-${t.id}">${t.icon}</div>
+    <div class="icon-picker-grid" id="edit-iconpicker-${t.id}"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn btn-success btn-sm" onclick="saveEditTask('${t.id}')" style="flex:1;">💾 Save</button>
+      <button class="btn btn-gray btn-sm" onclick="cancelEditTask()" style="flex:1;">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function updateNewShiftPreview() {
+  const val=document.getElementById('newTaskTimeInput')?.value.trim();
+  const el=document.getElementById('newShiftPreview'); if(!el)return;
+  if(!val){el.textContent='';return;}
+  const h=parseInt(val.split(':')[0],10);
+  const sm=SHIFT_META[getTaskShift({time:val})]; el.textContent=`→ Will be added to ${sm.icon} ${sm.label}`;
+}
+
+function updateEditShiftPreview(id) {
+  const val=document.getElementById(`edit-time-${id}`)?.value.trim();
+  const el=document.getElementById(`edit-shift-preview-${id}`); if(!el)return;
+  if(!val){el.textContent='';return;}
+  const sm=SHIFT_META[getTaskShift({time:val})]; el.textContent=`→ Will move to ${sm.icon} ${sm.label}`;
+}
+
+function toggleEditTask(id) {
+  editingTaskId=(editingTaskId===id)?null:id;
+  if(editingTaskId)editTaskIcon=getTasks().find(t=>t.id===id)?.icon||'📋';
+  renderManageTasks();
+  if(editingTaskId)setTimeout(()=>{
+    const el=document.getElementById('editform-'+id);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+    buildIconPicker('edit-iconpicker-'+id,'edit-iconpreview-'+id,editTaskIcon,icon=>{editTaskIcon=icon;});
+    updateEditShiftPreview(id);
+  },60);
+}
+
+function cancelEditTask(){editingTaskId=null;renderManageTasks();}
+
+async function saveEditTask(id) {
+  const name=document.getElementById('edit-name-'+id)?.value.trim();
+  const time=document.getElementById('edit-time-'+id)?.value.trim();
+  if(!name){showToast('Name cannot be empty');return;}
+  if(cache.tasks[id]){
+    cache.tasks[id].name=name;
+    cache.tasks[id].time=time||cache.tasks[id].time;
+    cache.tasks[id].icon=editTaskIcon;
+  }
+  await fbSet('tasks', cache.tasks);
+  editingTaskId=null; showToast('✅ Task updated!'); renderManageTasks();
+}
+
+async function addTask() {
+  const name=document.getElementById('newTaskNameInput').value.trim();
+  if(!name){showToast('Enter a task name');return;}
+  const time=document.getElementById('newTaskTimeInput').value.trim()||'09:00';
+  const id='t'+Date.now();
+  cache.tasks[id]={id,name,time,icon:newTaskIcon};
+  await fbSet('tasks', cache.tasks);
+  document.getElementById('newTaskNameInput').value='';
+  document.getElementById('newTaskTimeInput').value='';
+  newTaskIcon='📋'; renderManageTasks(); showToast('✅ Task added!');
+}
+
+async function removeTask(id) {
+  if(!confirm('Remove this task?'))return;
+  delete cache.tasks[id];
+  await fbSet('tasks', cache.tasks);
+  if(editingTaskId===id)editingTaskId=null;
+  renderManageTasks(); showToast('Task removed');
+}
+
+// ================================================================
+// ICON PICKER
+// ================================================================
+function buildIconPicker(containerId,previewId,current,onSelect) {
+  const el=document.getElementById(containerId); if(!el)return;
+  el.innerHTML=TASK_ICONS.map(icon=>`<div class="icon-opt ${icon===(current||'📋')?'selected':''}"
+    onclick="iconPickerSelect(this,'${containerId}','${previewId}','${icon}')">${icon}</div>`).join('');
+  el._onSelect=onSelect;
+}
+function iconPickerSelect(el,cid,pid,icon) {
+  document.querySelectorAll(`#${cid} .icon-opt`).forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  const prev=document.getElementById(pid); if(prev)prev.textContent=icon;
+  const c=document.getElementById(cid); if(c&&c._onSelect)c._onSelect(icon);
+}
+
+// ================================================================
+// REPORT
+// ================================================================
+function renderReport() {
+  const dateStr=localDateStr(reportDate);
+  document.getElementById('reportDateLabel').textContent=reportDate.toLocaleDateString('en-ZA',
+    {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Ensure we have a listener for this date
+  ensureCompListenerForDate(dateStr);
+
+  // Photos now load lazily per-task when expanded — no bulk preload needed
+
+  const comps=getCompletionsForDate(dateStr);
+  const el=document.getElementById('reportBody');
+  if(!comps.length){
+    el.innerHTML=`<div class="card txt-center txt-gray" style="padding:44px 20px;">
+      <div style="font-size:52px;margin-bottom:12px;">📋</div>
+      <div style="font-weight:700;">No records for this date</div>
+      <div style="font-size:13px;margin-top:6px;">Data updates live from all devices ☁️</div>
+    </div>`; return;
+  }
+
+  const done=comps.filter(c=>c.hasAfter).length;
+  const morningComps  =comps.filter(c=>c.shift==='morning');
+  const middayComps   =comps.filter(c=>c.shift==='midday');
+  const afternoonComps=comps.filter(c=>c.shift==='afternoon');
+  const nightComps    =comps.filter(c=>c.shift==='night'||!c.shift);
+
+  const renderSection=(list,label)=>{
+    if(!list.length)return'';
+    return `<div class="sec-header">${label}</div>`+list.map(c=>{
+      const key=`${c.taskId}__${c.staffId}`;
+      const hasPhotos=c.hasBefore||c.hasAfter;
+      return `<div class="report-task-card">
+        <div class="report-task-head" style="cursor:${hasPhotos?'pointer':'default'}" onclick="${hasPhotos?`toggleReportPhotos('${dateStr}','${key}',this)`:''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;font-size:15px;">${c.taskIcon||''} ${c.taskName}</span>
+            <span class="badge ${c.hasAfter?'badge-green':c.hasBefore?'badge-yellow':'badge-gray'}">
+              ${c.hasAfter?'✅ Done':c.hasBefore?'⏳ Partial':'○ Pending'}
+            </span>
+          </div>
+          <div style="font-size:12px;color:#718096;margin-top:3px;">
+            👤 ${c.staffName}${c.completedAt?' &nbsp;·&nbsp; ✓ '+c.completedAt:''}
+            ${hasPhotos?'<span style="float:right;font-size:11px;color:#90cdf4;">📷 Tap to view photos</span>':''}
+          </div>
+        </div>
+        <div class="report-photos" id="photos-${key}" style="display:none;"></div>
+      </div>`;
+    }).join('');
+  };
+
+  el.innerHTML=`
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:800;font-size:17px;">📊 Daily Task Report</div>
+      <div style="font-size:13px;color:#718096;margin-top:2px;">${getBizName()} — ${dateStr}</div>
+      <div class="hr"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:8px;">
+        <div><div style="font-size:24px;font-weight:800;color:#005EB8;">${comps.length}</div><div style="font-size:12px;color:#718096;">Started</div></div>
+        <div><div style="font-size:24px;font-weight:800;color:#38a169;">${done}</div><div style="font-size:12px;color:#718096;">Completed</div></div>
+        <div><div style="font-size:24px;font-weight:800;color:#d69e2e;">${comps.length-done}</div><div style="font-size:12px;color:#718096;">Pending</div></div>
+      </div>
+    </div>
+    <div class="card card-blue" style="padding:12px 14px;margin-bottom:14px;font-size:12px;color:#2b6cb0;">
+      ☁️ Data &amp; photos synced across all devices
+    </div>
+    ${renderSection(morningComps,  '🌄 Morning Shift')}
+    ${renderSection(middayComps,   '☀️ Midday Shift')}
+    ${renderSection(afternoonComps,'🌇 Afternoon Shift')}
+    ${renderSection(nightComps,    '🌙 Night Shift')}`;
+}
+
+async function toggleReportPhotos(dateStr, key, headEl) {
+  const panel = document.getElementById('photos-'+key);
+  if (!panel) return;
+  if (panel.style.display !== 'none') { panel.style.display='none'; return; }
+  panel.style.display='grid';
+  panel.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#718096;">📷 Loading photos…</div>';
+  const [taskId, staffId] = key.split('__');
+  await loadPhotosForTask(dateStr, key);
+  const before = getPhoto(dateStr, taskId, staffId, 'before');
+  const after  = getPhoto(dateStr, taskId, staffId, 'after');
+  const beforeHtml = before
+    ? `<img src="${before}" alt="Before" style="width:100%;border-radius:9px;border:1px solid #e2e8f0;">`
+    : `<div class="report-photo-empty">No photo</div>`;
+  const afterHtml = after
+    ? `<img src="${after}" alt="After" style="width:100%;border-radius:9px;border:1px solid #e2e8f0;">`
+    : `<div class="report-photo-empty">No photo</div>`;
+  panel.innerHTML = `
+    <div class="report-photo">${beforeHtml}<div class="report-photo-label">📸 Before</div></div>
+    <div class="report-photo">${afterHtml}<div class="report-photo-label">📸 After</div></div>`;
+}
+
+function shiftReportDate(n) {
+  reportDate.setDate(reportDate.getDate()+n); renderReport();
+}
+
+function exportReportCSV() {
+  const dateStr=localDateStr(reportDate);
+  const comps=getCompletionsForDate(dateStr);
+  if(!comps.length){showToast('No data to export');return;}
+  const rows=[['Date','Task','Time','Shift','Staff','Status','Completed At']];
+  comps.forEach(c=>{
+    const task=getTasks().find(t=>t.id===c.taskId);
+    rows.push([
+      c.date, c.taskName, task?.time||'', (SHIFT_META[c.shift]||SHIFT_META.morning).label,
+      c.staffName, c.hasAfter?'Done':c.hasBefore?'Partial':'Pending', c.completedAt||''
+    ]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`BP-Wetlands-Report-${dateStr}.csv`;
+  a.click(); showToast('📥 CSV downloaded');
+}
+
+// ================================================================
+// SETTINGS
+// ================================================================
+function renderSettings() {
+  document.getElementById('bizNameInput').value=getBizName();
+}
+async function changePin() {
+  const cur=document.getElementById('curPinInput').value;
+  const nw =document.getElementById('newPinInput').value;
+  const cf =document.getElementById('confPinInput').value;
+  if(cur!==getPin()){showToast('❌ Current PIN incorrect');return;}
+  if(nw.length<4){showToast('PIN must be at least 4 digits');return;}
+  if(nw!==cf){showToast('❌ PINs do not match');return;}
+  cache.settings.pin=nw;
+  await fbSet('settings', cache.settings);
+  ['curPinInput','newPinInput','confPinInput'].forEach(id=>document.getElementById(id).value='');
+  showToast('✅ PIN changed!');
+}
+async function saveBizName() {
+  const name=document.getElementById('bizNameInput').value.trim();
+  if(!name){showToast('Enter a business name');return;}
+  cache.settings.bizname=name;
+  await fbSet('settings', cache.settings);
+  showToast('✅ Business name saved!');
+}
+async function clearCompletions() {
+  if(!confirm('Clear ALL task completion records? This cannot be undone.'))return;
+  cache.completions={};
+  await fbRemove('completions');
+  showToast('🗑️ Records cleared');
+  nav('pg-admin');
+}
+
+// ================================================================
+// NOTICE BOARD
+// ================================================================
+const NB_STORE = 'bpw_noticeboard_v2';
+let nbDb = { notices:[], acks:[] };
+let nbSp = null;
+let nbSigInited = false;
+
+function nbLoadDb(cb) {
+  if (!db) {
+    try { nbDb = JSON.parse(localStorage.getItem(NB_STORE)) || { notices:[], acks:[] }; }
+    catch(e) { nbDb = { notices:[], acks:[] }; }
+    if (!Array.isArray(nbDb.notices)) nbDb.notices = [];
+    if (!Array.isArray(nbDb.acks))    nbDb.acks    = [];
+    if (cb) cb(); return;
+  }
+  db.ref('noticeboard').once('value', snap => {
+    const val = snap.val() || { notices:[], acks:[] };
+    nbDb = { notices: val.notices||[], acks: val.acks||[] };
+    if (!Array.isArray(nbDb.notices)) nbDb.notices = [];
+    if (!Array.isArray(nbDb.acks))    nbDb.acks    = [];
+    if (cb) cb();
+  });
+}
+function nbSaveDb() {
+  if (!db) {
+    try { localStorage.setItem(NB_STORE, JSON.stringify(nbDb)); } catch(e){}
+    return;
+  }
+  db.ref('noticeboard').set({ notices: nbDb.notices, acks: nbDb.acks });
+}
+function nbSeedDemo() {
+  if (nbDb.notices.length || CONFIG_SET) return;
+  nbDb.notices = [
+    { id:nbUid(), cat:'blacklisted', title:'Account #4421 — Fuel Only', body:'No cigarettes, no airtime. Fuel only. Max R300 per fill.', ts: Date.now()-3600000 },
+    { id:nbUid(), cat:'blacklisted', title:'Account #1087 — SUSPENDED', body:'Account over limit. No credit until payment received.', ts: Date.now()-7200000 },
+    { id:nbUid(), cat:'campaign',    title:'Shell V-Power Promo', body:'Buy 30 L V-Power, get a free air-freshener. Valid this week.', ts: Date.now()-1800000 },
+    { id:nbUid(), cat:'general',     title:'Shift Handover Reminder', body:'All staff must sign handover register before leaving. No exceptions.', ts: Date.now()-900000 },
+  ];
+  nbSaveDb();
+}
+function nbUid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+function nbEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nbTodayStr() { return new Date().toISOString().slice(0,10); }
+function nbFmtTime(ts) { return new Date(ts).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}); }
+function nbFmtDt(ts) { return new Date(ts).toLocaleString('en-ZA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function nbCatName(cat) { return {blacklisted:'Suspended',campaign:'Campaign / Promotion',general:'General Notices'}[cat]||cat; }
+
+function renderNoticeBoard() {
+  nbLoadDb(function() {
+    nbSeedDemo();
+    nbSigInited = false;
+    nbDb.notices.forEach(n=>n._cat=n.cat);
+
+    const cats = ['blacklisted','campaign','general'];
+    cats.forEach(cat=>{
+      const items = nbDb.notices.filter(n=>n.cat===cat);
+      const cnt = document.getElementById('nb-cnt-'+cat);
+      const cards = document.getElementById('nb-cards-'+cat);
+      if (cnt) cnt.textContent = items.length;
+      if (cards) cards.innerHTML = cat==='blacklisted' ? nbBlacklistedHtml(items) : nbNoticesHtml(items);
+      // reset tick
+      const cb = document.getElementById('nb-cb-'+cat);
+      if (cb) { cb.checked = false; cb.disabled = !items.length; }
+      const tick = document.getElementById('nb-tick-'+cat);
+      if (tick) { tick.classList.remove('ticked'); tick.style.display = items.length ? '' : 'none'; }
+      // hide section if empty
+      const sec = document.getElementById('nb-sec-'+cat);
+      if (sec) sec.style.display = items.length ? '' : 'none';
+    });
+
+    const signSec = document.getElementById('nbSignSection');
+    const valMsg  = document.getElementById('nbValMsg');
+    if (signSec) signSec.style.display = 'none';
+    if (valMsg)  valMsg.style.display  = 'none';
+    const success = document.getElementById('nbSuccessBanner');
+    if (success) success.style.display = 'none';
+    nbRenderTodayAcks();
+  });
+}
+
+function nbBlacklistedHtml(notices) {
+  if (!notices.length) return '<p style="color:#718096;font-size:14px;padding:8px 0;">No suspended accounts today.</p>';
+  return `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <thead><tr style="background:#fed7d7;">
+      <th style="padding:8px;text-align:left;border-bottom:1px solid #fc8181;">Account</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid #fc8181;">Restriction</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid #fc8181;">Posted</th>
+    </tr></thead>
+    <tbody>${notices.map(n=>`<tr style="border-bottom:1px solid #fff5f5;">
+      <td style="padding:8px;font-weight:600;">${nbEsc(n.title)}</td>
+      <td style="padding:8px;">${nbEsc(n.body)}</td>
+      <td style="padding:8px;color:#718096;font-size:12px;white-space:nowrap;">${nbFmtTime(n.ts)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function nbNoticesHtml(notices) {
+  if (!notices.length) return '<p style="color:#718096;font-size:14px;padding:8px 0;">No notices.</p>';
+  return notices.map(n=>`<div class="nb-notice-card">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${nbEsc(n.title)}</div>
+    <div style="font-size:14px;color:#4a5568;">${nbEsc(n.body)}</div>
+    <div style="font-size:11px;color:#a0aec0;margin-top:6px;">${nbFmtDt(n.ts)}</div>
+  </div>`).join('');
+}
+
+function nbRenderTodayAcks() {
+  const today = nbTodayStr();
+  const todayAcks = nbDb.acks.filter(a=>a.date===today);
+  const wrap = document.getElementById('nbAcksToday');
+  const chips = document.getElementById('nbAckChips');
+  if (!wrap || !chips) return;
+  if (!todayAcks.length) { wrap.style.display='none'; return; }
+  wrap.style.display='';
+  chips.innerHTML = todayAcks.map(a=>`<span class="nb-chip">${nbEsc(a.name)} <span style="font-size:10px;opacity:.7;">${nbFmtTime(a.ts)}</span></span>`).join('');
+}
+
+function nbOnTick(cat) {
+  const cb = document.getElementById('nb-cb-'+cat);
+  const lbl = document.getElementById('nb-tick-'+cat);
+  if (lbl) lbl.classList.toggle('ticked', cb.checked);
+  nbUpdateSignSection();
+}
+
+function nbUpdateSignSection() {
+  const cats = ['blacklisted','campaign','general'];
+  const allTicked = cats.every(cat=>{
+    const sec = document.getElementById('nb-sec-'+cat);
+    if (sec && sec.style.display==='none') return true; // hidden = no notices = skip
+    const cb = document.getElementById('nb-cb-'+cat);
+    return cb && cb.checked;
+  });
+  const signSec = document.getElementById('nbSignSection');
+  if (!signSec) return;
+  signSec.style.display = allTicked ? '' : 'none';
+  if (allTicked && !nbSigInited) nbInitSig();
+}
+
+function nbInitSig() {
+  const canvas = document.getElementById('nbSigCanvas');
+  if (!canvas) return;
+  nbSp = new SignaturePad(canvas, { penColor:'#1a202c', backgroundColor:'rgba(0,0,0,0)' });
+  const ratio = Math.max(window.devicePixelRatio||1,1);
+  canvas.width  = canvas.offsetWidth  * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext('2d').scale(ratio,ratio);
+  nbSp.clear();
+  nbSp.addEventListener('beginStroke', ()=>nbShowHint(false));
+  nbSigInited = true;
+  nbShowHint(true);
+}
+
+function nbShowHint(show) {
+  const h = document.getElementById('nbSigHint');
+  if (h) h.style.display = show ? '' : 'none';
+}
+function nbClearSig() {
+  if (nbSp) nbSp.clear();
+  nbShowHint(true);
+}
+
+function nbSubmitAck() {
+  const nameInput = document.getElementById('nbAckName');
+  const valMsg    = document.getElementById('nbValMsg');
+  const name = (nameInput?.value||'').trim();
+  if (!name) {
+    if (valMsg) { valMsg.textContent='Please enter your name.'; valMsg.style.display=''; }
+    nameInput?.focus();
+    return;
+  }
+  if (!nbSp || nbSp.isEmpty()) {
+    if (valMsg) { valMsg.textContent='Please sign before submitting.'; valMsg.style.display=''; }
+    return;
+  }
+  if (valMsg) valMsg.style.display='none';
+
+  const today = nbTodayStr();
+  const sigData = nbSp.toDataURL('image/png');
+  const sections = ['blacklisted','campaign','general'].filter(cat=>{
+    const sec = document.getElementById('nb-sec-'+cat);
+    return !(sec && sec.style.display==='none');
+  });
+  nbDb.acks.push({ id:nbUid(), date:today, name, sig:sigData, ts:Date.now(), sections });
+  nbSaveDb();
+
+  // Show success
+  const banner = document.getElementById('nbSuccessBanner');
+  const msg    = document.getElementById('nbSuccessMsg');
+  if (msg) msg.textContent = `✅ Thank you, ${name}! Notice board acknowledged.`;
+  if (banner) banner.style.display='';
+
+  // Reset
+  if (nameInput) nameInput.value='';
+  nbClearSig();
+  const signSec = document.getElementById('nbSignSection');
+  if (signSec) signSec.style.display='none';
+  nbSigInited = false;
+
+  ['blacklisted','campaign','general'].forEach(cat=>{
+    const cb = document.getElementById('nb-cb-'+cat);
+    const lbl = document.getElementById('nb-tick-'+cat);
+    if (cb) cb.checked = false;
+    if (lbl) { lbl.classList.remove('ticked'); }
+  });
+  nbRenderTodayAcks();
+}
+
+function renderNoticeBoardAdmin() {
+  nbLoadDb(function() {
+    nbSeedDemo();
+    const list = document.getElementById('nbAdminList');
+    const acksPanel = document.getElementById('nbAcksPanel');
+    if (acksPanel) acksPanel.style.display='none';
+
+    if (!list) return;
+    if (!nbDb.notices.length) {
+      list.innerHTML='<div class="nb-empty">No notices posted yet.</div>';
+      return;
+    }
+    list.innerHTML = nbDb.notices.map(n=>`
+      <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:12px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="nb-cat-pill nb-cp-${nbEsc(n.cat)}">${nbCatName(n.cat)}</span>
+            <span style="font-size:11px;color:#a0aec0;">${nbFmtDt(n.ts)}</span>
+          </div>
+          <div style="font-weight:700;font-size:15px;">${nbEsc(n.title)}</div>
+          <div style="font-size:13px;color:#4a5568;margin-top:3px;">${nbEsc(n.body)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button class="btn" style="font-size:12px;padding:5px 10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;" onclick="nbViewAcks('${nbEsc(n.cat)}')">📋 Acks</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;background:#fff5f5;color:#c53030;border:1px solid #fed7d7;" onclick="nbDelNotice('${nbEsc(n.id)}')">🗑️ Delete</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function nbViewAcks(category) {
+  nbLoadDb(function() {
+    const panel = document.getElementById('nbAcksPanel');
+    const title = document.getElementById('nbAcksTitle');
+    const list  = document.getElementById('nbAcksList');
+    if (!panel || !list) return;
+
+    const relevant = nbDb.acks.filter(a=>a.sections&&a.sections.includes(category));
+    if (title) title.textContent = `${nbCatName(category)} — Acknowledgements (${relevant.length})`;
+    if (!relevant.length) {
+      list.innerHTML='<div class="nb-empty">No acknowledgements yet for this category.</div>';
+    } else {
+      list.innerHTML = relevant.map(a=>`<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <div style="font-weight:700;">${nbEsc(a.name)} <span style="font-size:12px;color:#718096;font-weight:400;">${nbFmtDt(a.ts)}</span></div>
+        ${a.sig?`<img src="${a.sig}" class="nb-ack-sig" alt="Signature">`:''}
+      </div>`).join('');
+    }
+    panel.style.display='';
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+}
+
+function nbPostNotice() {
+  const cat   = document.getElementById('nbFCat').value;
+  const title = (document.getElementById('nbFTitle').value||'').trim();
+  const body  = (document.getElementById('nbFBody').value||'').trim();
+  if (!title) { showToast('Enter a title for the notice'); return; }
+  nbLoadDb(function() {
+    nbDb.notices.unshift({ id:nbUid(), cat, title, body, ts:Date.now() });
+    nbSaveDb();
+    document.getElementById('nbFTitle').value='';
+    document.getElementById('nbFBody').value='';
+    document.getElementById('nbFCat').value='general';
+    showToast('✅ Notice posted!');
+    renderNoticeBoardAdmin();
+  });
+}
+
+function nbDelNotice(id) {
+  if (!confirm('Delete this notice?')) return;
+  nbLoadDb(function() {
+    nbDb.notices = nbDb.notices.filter(n=>n.id!==id);
+    nbSaveDb();
+    showToast('🗑️ Notice deleted');
+    renderNoticeBoardAdmin();
+  });
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+let _toastTimer;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ================================================================
+// START
+// ================================================================
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
