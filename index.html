@@ -258,6 +258,53 @@
     .nb-ack-sig { width:90px; height:36px; object-fit:contain; background:white; border:1px solid #e2e8f0; border-radius:4px; flex-shrink:0; }
     .nb-empty { padding:16px 0 4px; font-size:13px; color:#a0aec0; text-align:center; }
 
+    /* ── Weekly Ack Grid (Admin) ── */
+    .nbw-wrap { margin-top:14px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.09); }
+    .nbw-topbar { background:#0F1F3D; padding:12px 16px; display:flex; align-items:center; gap:10px; border-bottom:2px solid #C9A227; }
+    .nbw-title { font-size:13px; font-weight:700; color:#fff; flex:1; }
+    .nbw-cat-pill { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:2px 9px; border-radius:20px; background:rgba(201,162,39,.2); color:#C9A227; border:1px solid rgba(201,162,39,.35); }
+    .nbw-nav { display:flex; align-items:center; gap:8px; padding:10px 16px; background:#162340; }
+    .nbw-nav-btn { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:#9AB0C8; border-radius:6px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; flex-shrink:0; }
+    .nbw-nav-btn:hover { background:rgba(201,162,39,.18); color:#C9A227; border-color:rgba(201,162,39,.4); }
+    .nbw-week-label { font-size:12px; font-weight:600; color:#fff; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:5px 14px; flex:1; text-align:center; }
+    .nbw-stats { display:flex; gap:14px; padding:8px 16px; background:#fff; border-bottom:1px solid #e2e8f0; font-size:11px; font-family:inherit; }
+    .nbw-stat { display:flex; align-items:center; gap:5px; color:#718096; }
+    .nbw-stat b { color:#1a202c; }
+    .nbw-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .nbw-dot.gold { background:#C9A227; }
+    .nbw-dot.grey { background:#cbd5e0; }
+    .nbw-tbl-wrap { overflow-x:auto; }
+    .nbw-tbl { width:100%; border-collapse:separate; border-spacing:0; min-width:700px; }
+    .nbw-tbl thead th { background:#0F1F3D; color:#fff; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:0; border-bottom:2px solid #C9A227; position:sticky; top:0; }
+    .nbw-th-staff { text-align:left; padding:11px 14px; width:130px; min-width:120px; border-right:1px solid rgba(201,162,39,.25); }
+    .nbw-th-day { text-align:center; min-width:90px; }
+    .nbw-th-day.nbw-today-hd { border-top:3px solid #C9A227; }
+    .nbw-day-inner { padding:8px 6px; display:flex; flex-direction:column; align-items:center; gap:1px; }
+    .nbw-dname { font-size:9px; letter-spacing:.08em; color:#7A90B0; }
+    .nbw-dnum  { font-size:17px; font-weight:800; line-height:1; }
+    .nbw-dmon  { font-size:9px; color:#7A90B0; }
+    .nbw-tpip  { width:5px; height:5px; border-radius:50%; background:#C9A227; margin-top:2px; box-shadow:0 0 5px rgba(201,162,39,.7); }
+    .nbw-tbl tbody tr:nth-child(even) td { background:#F4F5F8; }
+    .nbw-tbl tbody tr:hover td { background:#FBF6E8; }
+    .nbw-tbl tbody tr:last-child td { border-bottom:none; }
+    .nbw-td { border-bottom:1px solid #e2e8f0; padding:5px 4px; text-align:center; border-right:1px solid #e2e8f0; }
+    .nbw-td:last-child { border-right:none; }
+    .nbw-td.nbw-today-col { background:#FDFAEE; }
+    .nbw-td-staff { text-align:left; padding:10px 14px; font-size:12px; font-weight:700; color:#1a202c; border-right:1px solid #e2e8f0; white-space:nowrap; background:#fff; }
+    .nbw-tbl tbody tr:nth-child(even) .nbw-td-staff { background:#F4F5F8; }
+    .nbw-tbl tbody tr:hover .nbw-td-staff { background:#FBF6E8; }
+    .nbw-init { display:inline-flex; width:24px; height:24px; border-radius:50%; background:#FBF6E8; color:#B8922A; align-items:center; justify-content:center; font-size:9px; font-weight:800; margin-right:7px; border:1px solid #EDD98A; flex-shrink:0; }
+    .nbw-ack-cell { background:#FDFAEE; border:1px solid #DEC96A; border-radius:6px; padding:5px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; position:relative; }
+    .nbw-ack-tick { position:absolute; top:3px; right:5px; font-size:9px; color:#B8922A; font-weight:800; }
+    .nbw-ack-name { font-size:9px; font-weight:700; color:#B8922A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:78px; }
+    .nbw-sig-wrap { width:72px; height:26px; background:#fff; border:1px solid #DEC96A; border-radius:3px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .nbw-sig-wrap img { width:100%; height:100%; object-fit:contain; }
+    .nbw-ack-time { font-size:8px; color:#a0aec0; }
+    .nbw-pend { color:#e2e8f0; font-size:16px; display:flex; align-items:center; justify-content:center; height:54px; }
+    .nbw-legend { display:flex; gap:14px; padding:10px 16px; font-size:11px; color:#718096; border-top:1px solid #e2e8f0; flex-wrap:wrap; }
+    .nbw-leg { display:flex; align-items:center; gap:6px; }
+    .nbw-leg-sw { width:12px; height:12px; border-radius:3px; border:1px solid #e2e8f0; flex-shrink:0; }
+
     @media print {
       .no-print { display:none !important; }
       body { background:#fff; }
@@ -609,10 +656,31 @@
   <div class="sec-header">Active Notices <span style="font-weight:400;color:#a0aec0;font-size:11px;">(stay until deleted)</span></div>
   <div class="card" id="nbAdminList" style="padding:8px 16px;"></div>
 
-  <!-- Acks panel -->
-  <div id="nbAcksPanel" style="display:none;">
-    <div class="sec-header" id="nbAcksTitle">Acknowledgements</div>
-    <div class="card" id="nbAcksList" style="padding:8px 16px;"></div>
+  <!-- Weekly Acks Grid -->
+  <div id="nbWeeklyAcksPanel">
+    <div class="sec-header">Acknowledgements — Weekly View</div>
+    <div class="nbw-wrap">
+      <div class="nbw-topbar">
+        <span class="nbw-title">Staff Acknowledgements</span>
+      </div>
+      <div class="nbw-nav">
+        <button class="nbw-nav-btn" onclick="nbWeekShift(-1)">&#8592;</button>
+        <div class="nbw-week-label" id="nbwWeekLabel"></div>
+        <button class="nbw-nav-btn" onclick="nbWeekShift(1)">&#8594;</button>
+      </div>
+      <div class="nbw-stats" id="nbwStats"></div>
+      <div class="nbw-tbl-wrap">
+        <table class="nbw-tbl">
+          <thead id="nbwThead"></thead>
+          <tbody id="nbwTbody"></tbody>
+        </table>
+      </div>
+      <div class="nbw-legend">
+        <div class="nbw-leg"><div class="nbw-leg-sw" style="background:#FDFAEE;border-color:#DEC96A;"></div> Acknowledged + signature</div>
+        <div class="nbw-leg"><div class="nbw-leg-sw" style="background:#F4F5F8;"></div> Not yet acknowledged</div>
+        <div class="nbw-leg"><div class="nbw-leg-sw" style="background:#FDFAEE;border-color:#C9A227;"></div> Today</div>
+      </div>
+    </div>
   </div>
   <div style="height:24px;"></div>
 </div>
@@ -1880,46 +1948,140 @@ function renderNoticeBoardAdmin() {
     if (!list) return;
     if (!nbDb.notices.length) {
       list.innerHTML='<div class="nb-empty">No notices posted yet.</div>';
-      return;
-    }
-    list.innerHTML = nbDb.notices.map(n=>`
-      <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:12px;">
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="nb-cat-pill nb-cp-${nbEsc(n.cat)}">${nbCatName(n.cat)}</span>
-            <span style="font-size:11px;color:#a0aec0;">${nbFmtDt(n.ts)}</span>
+    } else {
+      list.innerHTML = nbDb.notices.map(n=>`
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:12px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span class="nb-cat-pill nb-cp-${nbEsc(n.cat)}">${nbCatName(n.cat)}</span>
+              <span style="font-size:11px;color:#a0aec0;">${nbFmtDt(n.ts)}</span>
+            </div>
+            <div style="font-weight:700;font-size:15px;">${nbEsc(n.title)}</div>
+            <div style="font-size:13px;color:#4a5568;margin-top:3px;">${nbEsc(n.body)}</div>
           </div>
-          <div style="font-weight:700;font-size:15px;">${nbEsc(n.title)}</div>
-          <div style="font-size:13px;color:#4a5568;margin-top:3px;">${nbEsc(n.body)}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          <button class="btn" style="font-size:12px;padding:5px 10px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;" onclick="nbViewAcks('${nbEsc(n.cat)}')">📋 Acks</button>
-          <button class="btn" style="font-size:12px;padding:5px 10px;background:#fff5f5;color:#c53030;border:1px solid #fed7d7;" onclick="nbDelNotice('${nbEsc(n.id)}')">🗑️ Delete</button>
-        </div>
-      </div>`).join('');
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button class="btn" style="font-size:12px;padding:5px 10px;background:#fff5f5;color:#c53030;border:1px solid #fed7d7;" onclick="nbDelNotice('${nbEsc(n.id)}')">🗑️ Delete</button>
+          </div>
+        </div>`).join('');
+    }
+    // Always show weekly grid
+    nbwWeekOffset = 0;
+    const weeklyPanel = document.getElementById('nbWeeklyAcksPanel');
+    if (weeklyPanel) weeklyPanel.style.display = '';
+    nbRenderWeeklyGrid();
   });
 }
 
-function nbViewAcks(category) {
-  nbLoadDb(function() {
-    const panel = document.getElementById('nbAcksPanel');
-    const title = document.getElementById('nbAcksTitle');
-    const list  = document.getElementById('nbAcksList');
-    if (!panel || !list) return;
+// ── Weekly Ack Grid ──────────────────────────────────────────────
+let nbwCurrentCat    = 'general';
+let nbwWeekOffset    = 0;  // 0 = current week, -1 = last week, etc.
 
-    const relevant = nbDb.acks.filter(a=>a.sections&&a.sections.includes(category));
-    if (title) title.textContent = `${nbCatName(category)} — Acknowledgements (${relevant.length})`;
-    if (!relevant.length) {
-      list.innerHTML='<div class="nb-empty">No acknowledgements yet for this category.</div>';
-    } else {
-      list.innerHTML = relevant.map(a=>`<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
-        <div style="font-weight:700;">${nbEsc(a.name)} <span style="font-size:12px;color:#718096;font-weight:400;">${nbFmtDt(a.ts)}</span></div>
-        ${a.sig?`<img src="${a.sig}" class="nb-ack-sig" alt="Signature">`:''}
-      </div>`).join('');
-    }
-    panel.style.display='';
-    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+function nbGetWeekDates(offset) {
+  // Returns array of 7 date strings [Mon..Sun] for the week at offset
+  const today = new Date();
+  const dow   = today.getDay(); // 0=Sun
+  const mondayDelta = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayDelta + offset * 7);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return localDateStr(d);
   });
+}
+
+function nbWeekShift(dir) {
+  nbwWeekOffset += dir;
+  nbRenderWeeklyGrid();
+}
+
+
+function nbRenderWeeklyGrid() {
+  const dates   = nbGetWeekDates(nbwWeekOffset);
+  const today   = todayStr();
+  const staff   = getStaff().slice().sort((a,b)=>a.name.localeCompare(b.name));
+
+  // Header labels
+  const DAY_SHORT = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Week label
+  const d0 = new Date(dates[0]+'T12:00:00');
+  const d6 = new Date(dates[6]+'T12:00:00');
+  const sameMonth = d0.getMonth() === d6.getMonth();
+  const wkLabel = sameMonth
+    ? `${d0.getDate()} – ${d6.getDate()} ${MONTH_SHORT[d6.getMonth()]} ${d6.getFullYear()}`
+    : `${d0.getDate()} ${MONTH_SHORT[d0.getMonth()]} – ${d6.getDate()} ${MONTH_SHORT[d6.getMonth()]} ${d6.getFullYear()}`;
+  document.getElementById('nbwWeekLabel').textContent = wkLabel;
+
+
+
+  // All acks for this week — one per person covers all categories
+  const weekAcks = nbDb.acks.filter(a => dates.includes(a.date));
+
+  // Stats: count unique staff names that have acked at least once this week
+  const ackedNames = new Set(weekAcks.map(a => a.name.trim().toLowerCase()));
+  const staffNames = new Set(staff.map(s => s.name.trim().toLowerCase()));
+  const ackedThisWeek = [...staffNames].filter(n => ackedNames.has(n)).length;
+  document.getElementById('nbwStats').innerHTML =
+    `<div class="nbw-stat"><span class="nbw-dot gold"></span><b>${ackedThisWeek}</b>&nbsp;acknowledged this week</div>` +
+    `<div class="nbw-stat"><span class="nbw-dot grey"></span><b>${staff.length - ackedThisWeek}</b>&nbsp;outstanding</div>`;
+
+  // Thead
+  const thead = document.getElementById('nbwThead');
+  thead.innerHTML = `<tr>
+    <th class="nbw-th-staff">Staff Member</th>
+    ${dates.map((dt,i) => {
+      const d = new Date(dt+'T12:00:00');
+      const isToday = dt === today;
+      return `<th class="nbw-th-day${isToday?' nbw-today-hd':''}">
+        <div class="nbw-day-inner">
+          <span class="nbw-dname">${DAY_SHORT[i]}</span>
+          <span class="nbw-dnum">${d.getDate()}</span>
+          <span class="nbw-dmon">${MONTH_SHORT[d.getMonth()]}</span>
+          ${isToday ? '<span class="nbw-tpip"></span>' : ''}
+        </div>
+      </th>`;
+    }).join('')}
+  </tr>`;
+
+  // Tbody — one row per staff member
+  const tbody = document.getElementById('nbwTbody');
+  if (!staff.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="nb-empty">No staff found. Add staff in Manage Staff first.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = staff.map(s => {
+    const initials = s.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    const cells = dates.map((dt,i) => {
+      const isToday = dt === today;
+      // Match ack: same date, name matches staff name (one ack covers all categories)
+      const ack = weekAcks.find(a =>
+        a.date === dt &&
+        a.name.trim().toLowerCase() === s.name.trim().toLowerCase()
+      );
+      if (ack) {
+        const t = new Date(ack.ts).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+        return `<td class="nbw-td${isToday?' nbw-today-col':''}">
+          <div class="nbw-ack-cell">
+            <span class="nbw-ack-tick">✓</span>
+            <span class="nbw-ack-name">${nbEsc(s.name.split(' ')[0])}</span>
+            ${ack.sig
+              ? `<div class="nbw-sig-wrap"><img src="${ack.sig}" alt="sig"></div>`
+              : `<div class="nbw-sig-wrap" style="font-size:9px;color:#a0aec0;">no sig</div>`}
+            <span class="nbw-ack-time">${t}</span>
+          </div>
+        </td>`;
+      } else {
+        return `<td class="nbw-td${isToday?' nbw-today-col':''}"><div class="nbw-pend">—</div></td>`;
+      }
+    }).join('');
+    return `<tr>
+      <td class="nbw-td-staff"><span class="nbw-init">${initials}</span>${nbEsc(s.name)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
 }
 
 function nbPostNotice() {
